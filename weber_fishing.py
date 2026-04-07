@@ -11,13 +11,13 @@ APP_PASSWORD = "zotftogpmzensefu"
 
 # --- RIVER DEFINITIONS ---
 rivers = [
-    {"name": "Weber River", "site": "10128500"},
-    {"name": "Provo River", "site": "10163000"},
-    {"name": "Logan River", "site": "10109000"},
-    {"name": "Green River", "site": "09234500"},
-    {"name": "Strawberry River", "site": "09287000"},
-    {"name": "Fremont River", "site": "09333500"},
-    {"name": "Ogden River", "site": "10132000"},
+    {"name": "Weber River", "site": "10128500", "lat": 40.8, "lon": -111.4},
+    {"name": "Provo River", "site": "10163000", "lat": 40.4, "lon": -111.5},
+    {"name": "Logan River", "site": "10109000", "lat": 41.7, "lon": -111.8},
+    {"name": "Green River", "site": "09234500", "lat": 40.9, "lon": -109.4},
+    {"name": "Strawberry River", "site": "09287000", "lat": 40.1, "lon": -110.8},
+    {"name": "Fremont River", "site": "09333500", "lat": 38.3, "lon": -111.6},
+    {"name": "Ogden River", "site": "10132000", "lat": 41.2, "lon": -111.9},
 ]
 
 # --- FUNCTIONS ---
@@ -48,6 +48,21 @@ def get_river_data(site_id):
     except:
         return None, "N/A", "N/A", None
 
+def get_weather(lat, lon):
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=3"
+    response = urllib.request.urlopen(url)
+    data = json.loads(response.read())
+    days = []
+    day_names = ["Today", "Tomorrow", "Day After"]
+    for i in range(3):
+        high = data["daily"]["temperature_2m_max"][i]
+        low = data["daily"]["temperature_2m_min"][i]
+        precip = data["daily"]["precipitation_sum"][i]
+        wind = data["daily"]["windspeed_10m_max"][i]
+        rain = f"{precip}in" if precip > 0 else "No rain"
+        days.append({"day": day_names[i], "high": high, "low": low, "precip": precip, "wind": wind, "rain": rain})
+    return days
+
 def get_flow_score(flow):
     if flow is None:
         return "Data unavailable", 0
@@ -76,14 +91,6 @@ def get_score(flow_score, temp_f, precip, wind):
         weather_score = 2
     return min(round((flow_score + temp_score + weather_score) / 3 * 2), 10)
 
-def get_emoji(score):
-    if score >= 8:
-        return "🟢"
-    elif score >= 5:
-        return "🟡"
-    else:
-        return "🔴"
-
 def get_color(score):
     if score >= 8:
         return "green"
@@ -100,6 +107,14 @@ def get_verdict(score):
     else:
         return "Skip it"
 
+def get_emoji(score):
+    if score >= 8:
+        return "🟢"
+    elif score >= 5:
+        return "🟡"
+    else:
+        return "🔴"
+
 def get_trend_emoji(trend):
     if trend == "Falling":
         return "📉 Falling (good)"
@@ -107,25 +122,6 @@ def get_trend_emoji(trend):
         return "📈 Rising"
     else:
         return "➡️ Stable"
-
-# --- FETCH WEATHER ---
-weather_url = "https://api.open-meteo.com/v1/forecast?latitude=40.8&longitude=-111.4&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=3"
-weather_response = urllib.request.urlopen(weather_url)
-weather_data = json.loads(weather_response.read())
-
-day_names = ["Today", "Tomorrow", "Day After"]
-days = []
-for i in range(3):
-    high = weather_data["daily"]["temperature_2m_max"][i]
-    low = weather_data["daily"]["temperature_2m_min"][i]
-    precip = weather_data["daily"]["precipitation_sum"][i]
-    wind = weather_data["daily"]["windspeed_10m_max"][i]
-    rain = f"{precip}in" if precip > 0 else "No rain"
-    days.append({"day": day_names[i], "high": high, "low": low, "precip": precip, "wind": wind, "rain": rain})
-
-today = days[0]
-precip = today["precip"]
-wind = today["wind"]
 
 # --- SUNRISE/SUNSET ---
 def get_sunrise_sunset(lat, lon, date):
@@ -167,8 +163,10 @@ sunrise, sunset = get_sunrise_sunset(40.8, -111.4, datetime.date.today())
 river_results = []
 for river in rivers:
     flow, trend, temp_str, temp_f = get_river_data(river["site"])
+    weather_days = get_weather(river["lat"], river["lon"])
+    today_weather = weather_days[0]
     condition, flow_score = get_flow_score(flow)
-    score = get_score(flow_score, temp_f, precip, wind)
+    score = get_score(flow_score, temp_f, today_weather["precip"], today_weather["wind"])
     river_results.append({
         "name": river["name"],
         "flow": flow,
@@ -179,10 +177,13 @@ for river in rivers:
         "score": score,
         "color": get_color(score),
         "emoji": get_emoji(score),
-        "verdict": get_verdict(score)
+        "verdict": get_verdict(score),
+        "lat": river["lat"],
+        "lon": river["lon"],
+        "weather": weather_days,
+        "weather_note": "Rain expected - BWOs may hatch well" if today_weather["precip"] > 0.1 else "Dry day - look for hatches midday"
     })
 
-# Sort by score
 river_results.sort(key=lambda x: x["score"], reverse=True)
 best_river = river_results[0]
 
@@ -216,8 +217,9 @@ for r in river_results:
     flow_str = f"{r['flow']} CFS" if r['flow'] else "No data"
     rivers_text += f"{r['emoji']} {r['name']}: {r['score']}/10 — {r['verdict']} | {flow_str} | {r['trend_emoji']}\n"
 
+today = river_results[0]["weather"][0]
 forecast_text = ""
-for d in days:
+for d in river_results[0]["weather"]:
     forecast_text += f"  {d['day']}: {d['high']}°F / {d['low']}°F | Wind {d['wind']} mph | {d['rain']}\n"
 
 message = f"""
@@ -229,13 +231,6 @@ Utah Fishing Report
 
 RIVER RANKINGS
 {rivers_text}
-WEATHER TODAY
-  High: {today['high']}°F | Low: {today['low']}°F
-  Wind: {wind} mph
-  {'Rain expected' if precip > 0.1 else 'No rain - look for hatches midday'}
-
-3-DAY FORECAST
-{forecast_text}
 TIMING
   Sunrise: {sunrise} | Sunset: {sunset}
   Best Window: {best_window}
@@ -257,18 +252,11 @@ data = {
     "sunrise": sunrise,
     "sunset": sunset,
     "best_window": best_window,
-    "forecast": days,
     "flies": flies,
-    "season": season,
-    "weather": {
-        "high": today["high"],
-        "low": today["low"],
-        "wind": wind,
-        "precip": precip
-    }
+    "season": season
 }
 
-with open("/Users/andrewoldroyd/Desktop/data.json", "w") as f:
+with open("/Users/andrewoldroyd/fishing-app/data.json", "w") as f:
     json.dump(data, f)
 print("data.json saved!")
 
