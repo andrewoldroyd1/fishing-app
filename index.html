@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utah Fishing Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #0a1628; color: #fff; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .header { text-align: center; padding: 30px 0; }
+        .header h1 { font-size: 28px; color: #4fc3f7; }
+        .header p { color: #888; margin-top: 5px; }
+        .best { background: #1a3a5c; border-left: 4px solid #4fc3f7; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 18px; }
+        .card { background: #1a2744; border-radius: 12px; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .card-left h3 { font-size: 16px; margin-bottom: 4px; }
+        .card-left p { font-size: 13px; color: #888; }
+        .score { font-size: 28px; font-weight: bold; }
+        .score.green { color: #4caf50; }
+        .score.yellow { color: #ffc107; }
+        .score.red { color: #f44336; }
+        .section { background: #1a2744; border-radius: 12px; padding: 20px; margin: 15px 0; }
+        .section h2 { font-size: 16px; color: #4fc3f7; margin-bottom: 15px; }
+        .stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a3754; font-size: 14px; }
+        .stat:last-child { border-bottom: none; }
+        .stat-label { color: #888; }
+        .fly { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #2a3754; }
+        .fly:last-child { border-bottom: none; }
+        .footer { text-align: center; color: #555; padding: 20px 0; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎣 Utah Fishing Report</h1>
+        <p id="report-time">Loading...</p>
+    </div>
+
+    <div class="best" id="best-river">Loading...</div>
+
+    <div id="rivers"></div>
+
+    <div class="section">
+        <h2>☁️ 3-DAY FORECAST</h2>
+        <div id="forecast"></div>
+    </div>
+
+    <div class="section">
+        <h2>⏰ TIMING</h2>
+        <div class="stat"><span class="stat-label">Sunrise</span><span id="sunrise">-</span></div>
+        <div class="stat"><span class="stat-label">Sunset</span><span id="sunset">-</span></div>
+        <div class="stat"><span class="stat-label">Best Window</span><span id="best-window">-</span></div>
+    </div>
+
+    <div class="section">
+        <h2>🪰 FLIES TO USE</h2>
+        <div id="flies"></div>
+    </div>
+
+    <div class="footer">Updated daily at 7:00 AM | Data from USGS</div>
+
+    <script>
+        fetch('data.json')
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById('report-time').textContent = d.report_time
+                document.getElementById('best-river').textContent = '👉 Best river today: ' + d.best_river
+
+                document.getElementById('rivers').innerHTML = d.rivers.map(r => `
+                    <div class="card">
+                        <div class="card-left">
+                            <h3>${r.name}</h3>
+                            <p>${r.flow ? r.flow + ' CFS' : 'No data'} | ${r.trend} | ${r.condition}</p>
+                        </div>
+                        <div class="score ${r.color}">${r.score}/10</div>
+                    </div>
+                `).join('')
+
+                document.getElementById('forecast').innerHTML = d.forecast.map(f => `
+                    <div class="stat">
+                        <span class="stat-label">${f.day}</span>
+                        <span>${f.high}°F / ${f.low}°F</span>
+                        <span>${f.wind} mph</span>
+                        <span>${f.rain}</span>
+                    </div>
+                `).join('')
+
+                document.getElementById('sunrise').textContent = d.sunrise
+                document.getElementById('sunset').textContent = d.sunset
+                document.getElementById('best-window').textContent = d.best_window
+
+                document.getElementById('flies').innerHTML = d.flies.map(f =>
+                    `<div class="fly">${f}</div>`
+                ).join('')
+            })
+    </script>
+</body>
+</html>
