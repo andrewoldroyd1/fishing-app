@@ -1,20 +1,31 @@
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).end()
-    const { messages, system } = req.body
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1000,
-            system,
-            messages
-        })
-    })
-    const data = await response.json()
-    res.json(data)
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { system, messages } = req.body;
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'system', content: system },
+                    ...messages
+                ]
+            })
+        });
+
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
+        res.status(200).json({ content: [{ text: reply }] });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 }
