@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Utah Fishing Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: #0a1628; color: #fff; padding: 20px; max-width: 600px; margin: 0 auto; }
@@ -27,11 +28,8 @@
         .fly { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #2a3754; }
         .fly:last-child { border-bottom: none; }
         .footer { text-align: center; color: #555; padding: 20px 0; font-size: 12px; }
-
-        /* Detail view */
         .detail-view { display: none; }
         .detail-view.active { display: block; }
-        .list-view { display: block; }
         .list-view.hidden { display: none; }
         .back-btn { background: #1a3a5c; border: none; color: #4fc3f7; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-bottom: 20px; }
         .back-btn:hover { background: #243560; }
@@ -41,6 +39,19 @@
         .big-score.green { color: #4caf50; }
         .big-score.yellow { color: #ffc107; }
         .big-score.red { color: #f44336; }
+        .access-box { background: #0f2040; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 13px; line-height: 1.6; color: #ccc; }
+        .hatch-item { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #2a3754; color: #4fc3f7; }
+        .hatch-item:last-child { border-bottom: none; }
+        canvas { max-width: 100%; }
+        .log-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .log-form input, .log-form select { background: #0f2040; border: 1px solid #2a3754; color: #fff; padding: 10px; border-radius: 8px; font-size: 14px; }
+        .log-form button { background: #4fc3f7; color: #000; border: none; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        .log-entry { padding: 8px 0; border-bottom: 1px solid #2a3754; font-size: 13px; }
+        .log-entry:last-child { border-bottom: none; }
+        .log-date { color: #888; font-size: 12px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab { background: #0f2040; border: none; color: #888; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .tab.active { background: #4fc3f7; color: #000; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -54,6 +65,10 @@
         <div class="best" id="best-river">Loading...</div>
         <div id="rivers"></div>
         <div class="section">
+            <h2>🐛 HATCHING THIS WEEK</h2>
+            <div id="hatches"></div>
+        </div>
+        <div class="section">
             <h2>🪰 FLIES TO USE</h2>
             <div id="flies"></div>
         </div>
@@ -63,45 +78,127 @@
     <!-- DETAIL VIEW -->
     <div class="detail-view" id="detail-view">
         <button class="back-btn" onclick="showList()">← Back to all rivers</button>
+
         <div class="detail-header">
             <h2 id="detail-name">-</h2>
             <div class="big-score" id="detail-score">-</div>
             <p id="detail-verdict" style="color:#888; margin-top:5px;">-</p>
+            <p id="detail-drive" style="color:#4fc3f7; margin-top:5px; font-size:13px;">-</p>
         </div>
-        <div class="section">
-            <h2>🌊 RIVER CONDITIONS</h2>
-            <div class="stat"><span class="stat-label">Flow</span><span id="detail-flow">-</span></div>
-            <div class="stat"><span class="stat-label">Trend</span><span id="detail-trend">-</span></div>
-            <div class="stat"><span class="stat-label">Conditions</span><span id="detail-condition">-</span></div>
-            <div class="stat"><span class="stat-label">Water Temp</span><span id="detail-temp">-</span></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('conditions')">Conditions</button>
+            <button class="tab" onclick="showTab('weather')">Weather</button>
+            <button class="tab" onclick="showTab('hatches')">Hatches</button>
+            <button class="tab" onclick="showTab('access')">Access</button>
+            <button class="tab" onclick="showTab('log')">My Log</button>
         </div>
-        <div class="section">
-            <h2>☁️ LOCAL WEATHER</h2>
-            <div id="detail-weather"></div>
-            <div class="stat" style="margin-top:10px;"><span class="stat-label">Note</span><span id="detail-weather-note">-</span></div>
+
+        <!-- CONDITIONS TAB -->
+        <div id="tab-conditions">
+            <div class="section">
+                <h2>🌊 RIVER CONDITIONS</h2>
+                <div class="stat"><span class="stat-label">Flow</span><span id="detail-flow">-</span></div>
+                <div class="stat"><span class="stat-label">Trend</span><span id="detail-trend">-</span></div>
+                <div class="stat"><span class="stat-label">Conditions</span><span id="detail-condition">-</span></div>
+                <div class="stat"><span class="stat-label">Water Temp</span><span id="detail-temp">-</span></div>
+            </div>
+            <div class="section">
+                <h2>📈 7-DAY FLOW HISTORY</h2>
+                <canvas id="flowChart"></canvas>
+            </div>
+            <div class="section">
+                <h2>⏰ TIMING</h2>
+                <div class="stat"><span class="stat-label">Sunrise</span><span id="detail-sunrise">-</span></div>
+                <div class="stat"><span class="stat-label">Sunset</span><span id="detail-sunset">-</span></div>
+                <div class="stat"><span class="stat-label">Best Window</span><span id="detail-window">-</span></div>
+            </div>
         </div>
-        <div class="section">
-            <h2>⏰ TIMING</h2>
-            <div class="stat"><span class="stat-label">Sunrise</span><span id="detail-sunrise">-</span></div>
-            <div class="stat"><span class="stat-label">Sunset</span><span id="detail-sunset">-</span></div>
-            <div class="stat"><span class="stat-label">Best Window</span><span id="detail-window">-</span></div>
+
+        <!-- WEATHER TAB -->
+        <div id="tab-weather" style="display:none">
+            <div class="section">
+                <h2>☁️ LOCAL WEATHER</h2>
+                <div id="detail-weather"></div>
+                <div class="stat" style="margin-top:10px;"><span class="stat-label">Note</span><span id="detail-weather-note">-</span></div>
+            </div>
         </div>
-        <div class="section">
-            <h2>🪰 FLIES TO USE</h2>
-            <div id="detail-flies"></div>
+
+        <!-- HATCHES TAB -->
+        <div id="tab-hatches" style="display:none">
+            <div class="section">
+                <h2>🐛 ACTIVE HATCHES</h2>
+                <div id="detail-hatches"></div>
+            </div>
+            <div class="section">
+                <h2>🪰 RECOMMENDED FLIES</h2>
+                <div id="detail-flies"></div>
+            </div>
+        </div>
+
+        <!-- ACCESS TAB -->
+        <div id="tab-access" style="display:none">
+            <div class="section">
+                <h2>🅿️ ACCESS & REGULATIONS</h2>
+                <div class="stat"><span class="stat-label">Drive from Provo</span><span id="detail-drive-time">-</span></div>
+                <div class="access-box" id="detail-access">-</div>
+                <div style="margin-top:15px;">
+                    <div class="stat-label" style="margin-bottom:8px;">Regulations</div>
+                    <div class="access-box" id="detail-regulations">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOG TAB -->
+        <div id="tab-log" style="display:none">
+            <div class="section">
+                <h2>📓 MY FISHING LOG</h2>
+                <div class="log-form">
+                    <input type="date" id="log-date">
+                    <input type="text" id="log-fly" placeholder="Fly used (e.g. BWO #18)">
+                    <input type="text" id="log-fish" placeholder="Fish caught (e.g. 16in Brown)">
+                    <select id="log-conditions">
+                        <option value="">Conditions...</option>
+                        <option>Excellent</option>
+                        <option>Good</option>
+                        <option>Fair</option>
+                        <option>Poor</option>
+                    </select>
+                    <input type="text" id="log-notes" placeholder="Notes (optional)">
+                    <button onclick="saveLog()">Save Entry</button>
+                </div>
+            </div>
+            <div class="section">
+                <h2>📅 PAST TRIPS</h2>
+                <div id="log-entries">No entries yet</div>
+            </div>
         </div>
     </div>
 
     <script>
         let reportData = null
+        let currentRiver = null
+        let flowChartInstance = null
 
         function showList() {
             document.getElementById('list-view').classList.remove('hidden')
             document.getElementById('detail-view').classList.remove('active')
         }
 
+        function showTab(tab) {
+            const tabs = ['conditions', 'weather', 'hatches', 'access', 'log']
+            tabs.forEach(t => {
+                document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
+            })
+            document.querySelectorAll('.tab').forEach((btn, i) => {
+                btn.classList.toggle('active', tabs[i] === tab)
+            })
+            if (tab === 'log') loadLog()
+        }
+
         function showDetail(index) {
             const r = reportData.rivers[index]
+            currentRiver = r.name
             document.getElementById('list-view').classList.add('hidden')
             document.getElementById('detail-view').classList.add('active')
 
@@ -109,11 +206,18 @@
             document.getElementById('detail-score').textContent = r.score + '/10'
             document.getElementById('detail-score').className = 'big-score ' + r.color
             document.getElementById('detail-verdict').textContent = r.verdict
+            document.getElementById('detail-drive').textContent = '🚗 ' + r.drive_from_provo + ' from Provo'
             document.getElementById('detail-flow').textContent = r.flow ? r.flow + ' CFS' : 'No data'
             document.getElementById('detail-trend').textContent = r.trend_emoji
             document.getElementById('detail-condition').textContent = r.condition
             document.getElementById('detail-temp').textContent = r.temp
             document.getElementById('detail-weather-note').textContent = r.weather_note
+            document.getElementById('detail-sunrise').textContent = reportData.sunrise
+            document.getElementById('detail-sunset').textContent = reportData.sunset
+            document.getElementById('detail-window').textContent = reportData.best_window
+            document.getElementById('detail-access').textContent = r.access
+            document.getElementById('detail-regulations').textContent = r.regulations
+            document.getElementById('detail-drive-time').textContent = r.drive_from_provo
 
             document.getElementById('detail-weather').innerHTML = r.weather.map(w => `
                 <div class="stat">
@@ -124,13 +228,82 @@
                 </div>
             `).join('')
 
-            document.getElementById('detail-sunrise').textContent = reportData.sunrise
-            document.getElementById('detail-sunset').textContent = reportData.sunset
-            document.getElementById('detail-window').textContent = reportData.best_window
+            document.getElementById('detail-hatches').innerHTML = reportData.hatches.map(h =>
+                `<div class="hatch-item">🐛 ${h}</div>`
+            ).join('')
 
             document.getElementById('detail-flies').innerHTML = reportData.flies.map(f =>
                 `<div class="fly">${f}</div>`
             ).join('')
+
+            // Flow chart
+            if (flowChartInstance) flowChartInstance.destroy()
+            const ctx = document.getElementById('flowChart').getContext('2d')
+            const history = r.flow_history || []
+            flowChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: history.map(h => h.date.slice(5)),
+                    datasets: [{
+                        label: 'Flow (CFS)',
+                        data: history.map(h => h.flow),
+                        borderColor: '#4fc3f7',
+                        backgroundColor: 'rgba(79,195,247,0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#888' }, grid: { color: '#1a2744' } },
+                        y: { ticks: { color: '#888' }, grid: { color: '#1a2744' } }
+                    }
+                }
+            })
+
+            showTab('conditions')
+            loadLog()
+        }
+
+        function saveLog() {
+            const entry = {
+                date: document.getElementById('log-date').value,
+                fly: document.getElementById('log-fly').value,
+                fish: document.getElementById('log-fish').value,
+                conditions: document.getElementById('log-conditions').value,
+                notes: document.getElementById('log-notes').value,
+                river: currentRiver
+            }
+            if (!entry.date || !entry.fly) return alert('Please enter at least a date and fly.')
+            const key = 'fishing-log-' + currentRiver
+            const existing = JSON.parse(localStorage.getItem(key) || '[]')
+            existing.unshift(entry)
+            localStorage.setItem(key, JSON.stringify(existing))
+            document.getElementById('log-date').value = ''
+            document.getElementById('log-fly').value = ''
+            document.getElementById('log-fish').value = ''
+            document.getElementById('log-notes').value = ''
+            loadLog()
+        }
+
+        function loadLog() {
+            if (!currentRiver) return
+            const key = 'fishing-log-' + currentRiver
+            const entries = JSON.parse(localStorage.getItem(key) || '[]')
+            const container = document.getElementById('log-entries')
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color:#888; font-size:13px;">No entries yet for ' + currentRiver + '</p>'
+            } else {
+                container.innerHTML = entries.map(e => `
+                    <div class="log-entry">
+                        <div class="log-date">${e.date} — ${e.river}</div>
+                        <div>🪰 ${e.fly} ${e.fish ? '| 🐟 ' + e.fish : ''} ${e.conditions ? '| ' + e.conditions : ''}</div>
+                        ${e.notes ? '<div style="color:#888">' + e.notes + '</div>' : ''}
+                    </div>
+                `).join('')
+            }
         }
 
         fetch('data.json')
@@ -149,6 +322,10 @@
                         <div class="score ${r.color}">${r.score}/10</div>
                     </div>
                 `).join('')
+
+                document.getElementById('hatches').innerHTML = d.hatches.map(h =>
+                    `<div class="hatch-item">🐛 ${h}</div>`
+                ).join('')
 
                 document.getElementById('flies').innerHTML = d.flies.map(f =>
                     `<div class="fly">${f}</div>`
