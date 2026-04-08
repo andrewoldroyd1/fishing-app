@@ -11,13 +11,69 @@ APP_PASSWORD = "zotftogpmzensefu"
 
 # --- RIVER DEFINITIONS ---
 rivers = [
-    {"name": "Weber River", "site": "10128500", "lat": 40.8, "lon": -111.4},
-    {"name": "Provo River", "site": "10163000", "lat": 40.4, "lon": -111.5},
-    {"name": "Logan River", "site": "10109000", "lat": 41.7, "lon": -111.8},
-    {"name": "Green River", "site": "09234500", "lat": 40.9, "lon": -109.4},
-    {"name": "Strawberry River", "site": "09287000", "lat": 40.1, "lon": -110.8},
-    {"name": "Fremont River", "site": "09333500", "lat": 38.3, "lon": -111.6},
-    {"name": "Ogden River", "site": "10132000", "lat": 41.2, "lon": -111.9},
+    {
+        "name": "Weber River",
+        "site": "10128500",
+        "lat": 40.8,
+        "lon": -111.4,
+        "access": "Walk-in access between Wanship and Coalville. Park at Wanship Bridge. Check Utah WIA program for access points.",
+        "drive_from_provo": "45 min",
+        "regulations": "Artificial flies and lures only below Rockport Dam"
+    },
+    {
+        "name": "Provo River",
+        "site": "10163000",
+        "lat": 40.4,
+        "lon": -111.5,
+        "access": "Easy access along US-189. Multiple pullouts between Heber and Provo. Very accessible.",
+        "drive_from_provo": "15 min",
+        "regulations": "Catch and release only in some sections. Check current regs."
+    },
+    {
+        "name": "Logan River",
+        "site": "10109000",
+        "lat": 41.7,
+        "lon": -111.8,
+        "access": "Highway 89 runs alongside river. Multiple pullouts through Logan Canyon. Very accessible.",
+        "drive_from_provo": "1 hr 20 min",
+        "regulations": "Check current Utah DWR regulations"
+    },
+    {
+        "name": "Green River",
+        "site": "09234500",
+        "lat": 40.9,
+        "lon": -109.4,
+        "access": "Little Hole National Recreation Trail provides 7 miles of river access. Launch at Red Creek.",
+        "drive_from_provo": "2 hr 45 min",
+        "regulations": "Artificial flies and lures only. Catch and release for trout."
+    },
+    {
+        "name": "Strawberry River",
+        "site": "09287000",
+        "lat": 40.1,
+        "lon": -110.8,
+        "access": "Access below Strawberry Reservoir. Forest Road 131 follows river. 4WD recommended.",
+        "drive_from_provo": "1 hr 15 min",
+        "regulations": "Check current Utah DWR regulations"
+    },
+    {
+        "name": "Fremont River",
+        "site": "09333500",
+        "lat": 38.3,
+        "lon": -111.6,
+        "access": "Access through Capitol Reef National Park. Free entry with America the Beautiful pass.",
+        "drive_from_provo": "2 hr 30 min",
+        "regulations": "National Park regulations apply. Check NPS website."
+    },
+    {
+        "name": "Ogden River",
+        "site": "10132000",
+        "lat": 41.2,
+        "lon": -111.9,
+        "access": "Pineview Reservoir to Ogden. Access along Highway 39. Urban sections easily accessible.",
+        "drive_from_provo": "1 hr",
+        "regulations": "Check current Utah DWR regulations"
+    },
 ]
 
 # --- FUNCTIONS ---
@@ -47,6 +103,23 @@ def get_river_data(site_id):
         return flow, trend, temp_str, temp_f
     except:
         return None, "N/A", "N/A", None
+
+def get_flow_history(site_id):
+    try:
+        url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={site_id}&parameterCd=00060&period=P7D"
+        response = urllib.request.urlopen(url, timeout=10)
+        data = json.loads(response.read())
+        values = data["value"]["timeSeries"][0]["values"][0]["value"]
+        history = []
+        seen_dates = set()
+        for v in values:
+            date = v["dateTime"][:10]
+            if date not in seen_dates:
+                seen_dates.add(date)
+                history.append({"date": date, "flow": float(v["value"])})
+        return history[-7:]
+    except:
+        return []
 
 def get_weather(lat, lon):
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=3"
@@ -123,6 +196,32 @@ def get_trend_emoji(trend):
     else:
         return "➡️ Stable"
 
+def get_hatches(month, temp_f):
+    hatches = []
+    if month in [2, 3, 4]:
+        hatches.append("Little Winter Stoneflies #16-18")
+    if month in [3, 4, 5, 9, 10, 11]:
+        hatches.append("Blue Winged Olives #18-22")
+    if month in [4, 5, 6]:
+        hatches.append("Mother's Day Caddis #14-16")
+    if month in [4, 5, 6]:
+        hatches.append("March Browns #12-14")
+    if month in [6, 7]:
+        hatches.append("Western Green Drakes #10-12")
+    if month in [6, 7, 8, 9]:
+        hatches.append("Yellow Sallies #14-16")
+    if month in [7, 8, 9]:
+        hatches.append("Tricos #20-24")
+    if month in [7, 8, 9]:
+        hatches.append("Hoppers #6-10")
+    if month in [9, 10]:
+        hatches.append("Mahogany Duns #16-18")
+    if month in [5, 6, 7, 8, 9]:
+        hatches.append("PMDs #16-20")
+    if temp_f and temp_f < 45:
+        hatches.append("Midges #22-26 (always active in cold water)")
+    return hatches if hatches else ["Midges #22-26", "Sow Bugs #18-22"]
+
 # --- SUNRISE/SUNSET ---
 def get_sunrise_sunset(lat, lon, date):
     n = date.timetuple().tm_yday
@@ -159,34 +258,6 @@ def get_sunrise_sunset(lat, lon, date):
 
 sunrise, sunset = get_sunrise_sunset(40.8, -111.4, datetime.date.today())
 
-# --- FETCH ALL RIVERS ---
-river_results = []
-for river in rivers:
-    flow, trend, temp_str, temp_f = get_river_data(river["site"])
-    weather_days = get_weather(river["lat"], river["lon"])
-    today_weather = weather_days[0]
-    condition, flow_score = get_flow_score(flow)
-    score = get_score(flow_score, temp_f, today_weather["precip"], today_weather["wind"])
-    river_results.append({
-        "name": river["name"],
-        "flow": flow,
-        "trend": trend,
-        "trend_emoji": get_trend_emoji(trend),
-        "temp": temp_str,
-        "condition": condition,
-        "score": score,
-        "color": get_color(score),
-        "emoji": get_emoji(score),
-        "verdict": get_verdict(score),
-        "lat": river["lat"],
-        "lon": river["lon"],
-        "weather": weather_days,
-        "weather_note": "Rain expected - BWOs may hatch well" if today_weather["precip"] > 0.1 else "Dry day - look for hatches midday"
-    })
-
-river_results.sort(key=lambda x: x["score"], reverse=True)
-best_river = river_results[0]
-
 # --- SEASON AND FLIES ---
 now = datetime.datetime.now()
 month = now.month
@@ -209,18 +280,51 @@ else:
     flies = ["Midges #22-26", "Sow Bugs #18-22", "Zebra Midges #20-24", "WD-40s #20-22"]
     best_window = "10:00 AM - 2:00 PM"
 
-flies_text = "\n".join(["  - " + f for f in flies])
+# --- FETCH ALL RIVERS ---
+river_results = []
+weber_temp_f = None
+for river in rivers:
+    flow, trend, temp_str, temp_f = get_river_data(river["site"])
+    weather_days = get_weather(river["lat"], river["lon"])
+    flow_history = get_flow_history(river["site"])
+    today_weather = weather_days[0]
+    condition, flow_score = get_flow_score(flow)
+    score = get_score(flow_score, temp_f, today_weather["precip"], today_weather["wind"])
+    if river["name"] == "Weber River":
+        weber_temp_f = temp_f
+    river_results.append({
+        "name": river["name"],
+        "flow": flow,
+        "trend": trend,
+        "trend_emoji": get_trend_emoji(trend),
+        "temp": temp_str,
+        "condition": condition,
+        "score": score,
+        "color": get_color(score),
+        "emoji": get_emoji(score),
+        "verdict": get_verdict(score),
+        "lat": river["lat"],
+        "lon": river["lon"],
+        "weather": weather_days,
+        "weather_note": "Rain expected - BWOs may hatch well" if today_weather["precip"] > 0.1 else "Dry day - look for hatches midday",
+        "access": river["access"],
+        "drive_from_provo": river["drive_from_provo"],
+        "regulations": river["regulations"],
+        "flow_history": flow_history
+    })
+
+river_results.sort(key=lambda x: x["score"], reverse=True)
+best_river = river_results[0]
+
+hatches = get_hatches(month, weber_temp_f)
 
 # --- BUILD EMAIL ---
+flies_text = "\n".join(["  - " + f for f in flies])
+hatches_text = "\n".join(["  - " + h for h in hatches])
 rivers_text = ""
 for r in river_results:
     flow_str = f"{r['flow']} CFS" if r['flow'] else "No data"
     rivers_text += f"{r['emoji']} {r['name']}: {r['score']}/10 — {r['verdict']} | {flow_str} | {r['trend_emoji']}\n"
-
-today = river_results[0]["weather"][0]
-forecast_text = ""
-for d in river_results[0]["weather"]:
-    forecast_text += f"  {d['day']}: {d['high']}°F / {d['low']}°F | Wind {d['wind']} mph | {d['rain']}\n"
 
 message = f"""
 Utah Fishing Report
@@ -231,6 +335,9 @@ Utah Fishing Report
 
 RIVER RANKINGS
 {rivers_text}
+HATCHES THIS WEEK
+{hatches_text}
+
 TIMING
   Sunrise: {sunrise} | Sunset: {sunset}
   Best Window: {best_window}
@@ -253,7 +360,8 @@ data = {
     "sunset": sunset,
     "best_window": best_window,
     "flies": flies,
-    "season": season
+    "season": season,
+    "hatches": hatches
 }
 
 with open("/Users/andrewoldroyd/fishing-app/data.json", "w") as f:
