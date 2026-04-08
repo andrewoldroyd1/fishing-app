@@ -49,8 +49,8 @@
         .log-entry { padding: 8px 0; border-bottom: 1px solid #2a3754; font-size: 13px; }
         .log-entry:last-child { border-bottom: none; }
         .log-date { color: #888; font-size: 12px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab { background: #0f2040; border: none; color: #888; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab { background: #0f2040; border: none; color: #888; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; }
         .tab.active { background: #4fc3f7; color: #000; font-weight: bold; }
     </style>
 </head>
@@ -141,7 +141,10 @@
             <div class="section">
                 <h2>🅿️ ACCESS & REGULATIONS</h2>
                 <div class="stat"><span class="stat-label">Drive from Provo</span><span id="detail-drive-time">-</span></div>
-                <div class="access-box" id="detail-access">-</div>
+                <div style="margin-top:10px;">
+                    <div class="stat-label" style="margin-bottom:8px;">Access Info</div>
+                    <div class="access-box" id="detail-access">-</div>
+                </div>
                 <div style="margin-top:15px;">
                     <div class="stat-label" style="margin-bottom:8px;">Regulations</div>
                     <div class="access-box" id="detail-regulations">-</div>
@@ -206,20 +209,20 @@
             document.getElementById('detail-score').textContent = r.score + '/10'
             document.getElementById('detail-score').className = 'big-score ' + r.color
             document.getElementById('detail-verdict').textContent = r.verdict
-            document.getElementById('detail-drive').textContent = '🚗 ' + r.drive_from_provo + ' from Provo'
+            document.getElementById('detail-drive').textContent = r.drive_from_provo ? '🚗 ' + r.drive_from_provo + ' from Provo' : ''
             document.getElementById('detail-flow').textContent = r.flow ? r.flow + ' CFS' : 'No data'
-            document.getElementById('detail-trend').textContent = r.trend_emoji
+            document.getElementById('detail-trend').textContent = r.trend_emoji || r.trend
             document.getElementById('detail-condition').textContent = r.condition
             document.getElementById('detail-temp').textContent = r.temp
-            document.getElementById('detail-weather-note').textContent = r.weather_note
+            document.getElementById('detail-weather-note').textContent = r.weather_note || ''
             document.getElementById('detail-sunrise').textContent = reportData.sunrise
             document.getElementById('detail-sunset').textContent = reportData.sunset
             document.getElementById('detail-window').textContent = reportData.best_window
-            document.getElementById('detail-access').textContent = r.access
-            document.getElementById('detail-regulations').textContent = r.regulations
-            document.getElementById('detail-drive-time').textContent = r.drive_from_provo
+            document.getElementById('detail-access').textContent = r.access || 'No access info available'
+            document.getElementById('detail-regulations').textContent = r.regulations || 'Check Utah DWR regulations'
+            document.getElementById('detail-drive-time').textContent = r.drive_from_provo || 'N/A'
 
-            document.getElementById('detail-weather').innerHTML = r.weather.map(w => `
+            document.getElementById('detail-weather').innerHTML = (r.weather || []).map(w => `
                 <div class="stat">
                     <span class="stat-label">${w.day}</span>
                     <span>${w.high}°F / ${w.low}°F</span>
@@ -228,11 +231,11 @@
                 </div>
             `).join('')
 
-            document.getElementById('detail-hatches').innerHTML = reportData.hatches.map(h =>
+            document.getElementById('detail-hatches').innerHTML = (reportData.hatches || []).map(h =>
                 `<div class="hatch-item">🐛 ${h}</div>`
             ).join('')
 
-            document.getElementById('detail-flies').innerHTML = reportData.flies.map(f =>
+            document.getElementById('detail-flies').innerHTML = (reportData.flies || []).map(f =>
                 `<div class="fly">${f}</div>`
             ).join('')
 
@@ -240,28 +243,30 @@
             if (flowChartInstance) flowChartInstance.destroy()
             const ctx = document.getElementById('flowChart').getContext('2d')
             const history = r.flow_history || []
-            flowChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: history.map(h => h.date.slice(5)),
-                    datasets: [{
-                        label: 'Flow (CFS)',
-                        data: history.map(h => h.flow),
-                        borderColor: '#4fc3f7',
-                        backgroundColor: 'rgba(79,195,247,0.1)',
-                        tension: 0.3,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { ticks: { color: '#888' }, grid: { color: '#1a2744' } },
-                        y: { ticks: { color: '#888' }, grid: { color: '#1a2744' } }
+            if (history.length > 0) {
+                flowChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: history.map(h => h.date.slice(5)),
+                        datasets: [{
+                            label: 'Flow (CFS)',
+                            data: history.map(h => h.flow),
+                            borderColor: '#4fc3f7',
+                            backgroundColor: 'rgba(79,195,247,0.1)',
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { color: '#888' }, grid: { color: '#1a2744' } },
+                            y: { ticks: { color: '#888' }, grid: { color: '#1a2744' } }
+                        }
                     }
-                }
-            })
+                })
+            }
 
             showTab('conditions')
             loadLog()
@@ -276,7 +281,7 @@
                 notes: document.getElementById('log-notes').value,
                 river: currentRiver
             }
-            if (!entry.date || !entry.fly) return alert('Please enter at least a date and fly.')
+            if (!entry.date || !entry.fly) { alert('Please enter at least a date and fly.'); return; }
             const key = 'fishing-log-' + currentRiver
             const existing = JSON.parse(localStorage.getItem(key) || '[]')
             existing.unshift(entry)
@@ -323,11 +328,11 @@
                     </div>
                 `).join('')
 
-                document.getElementById('hatches').innerHTML = d.hatches.map(h =>
+                document.getElementById('hatches').innerHTML = (d.hatches || []).map(h =>
                     `<div class="hatch-item">🐛 ${h}</div>`
                 ).join('')
 
-                document.getElementById('flies').innerHTML = d.flies.map(f =>
+                document.getElementById('flies').innerHTML = (d.flies || []).map(f =>
                     `<div class="fly">${f}</div>`
                 ).join('')
             })
