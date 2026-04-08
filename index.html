@@ -72,8 +72,6 @@
         .day-score.green { color: #4caf50; }
         .day-score.yellow { color: #ffc107; }
         .day-score.red { color: #f44336; }
-
-        /* AI Chat styles */
         .chat-container { display: flex; flex-direction: column; height: 500px; background: #1a2744; border-radius: 12px; overflow: hidden; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .chat-message { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
@@ -90,7 +88,6 @@
 </head>
 <body>
 
-    <!-- LIST VIEW -->
     <div class="list-view" id="list-view">
         <div class="header">
             <h1>🎣 Utah Fishing Report</h1>
@@ -136,7 +133,7 @@
         </div>
 
         <div id="ai-content" style="display:none">
-            <div class="chat-suggestions" id="chat-suggestions">
+            <div class="chat-suggestions">
                 <div class="chat-suggestion" onclick="askSuggestion(this)">Should I fish this weekend?</div>
                 <div class="chat-suggestion" onclick="askSuggestion(this)">Best fly for Weber right now?</div>
                 <div class="chat-suggestion" onclick="askSuggestion(this)">Which river is best today?</div>
@@ -158,17 +155,14 @@
         <div class="footer">Tap a river for details • Updated daily at 7:00 AM</div>
     </div>
 
-    <!-- DETAIL VIEW -->
     <div class="detail-view" id="detail-view">
         <button class="back-btn" onclick="showList()">← Back</button>
-
         <div class="detail-header">
             <h2 id="detail-name">-</h2>
             <div class="big-score" id="detail-score">-</div>
             <p id="detail-verdict" style="color:#888; margin-top:5px;">-</p>
             <p id="detail-drive" style="color:#4fc3f7; margin-top:5px; font-size:13px;">-</p>
         </div>
-
         <div class="tabs">
             <button class="tab active" onclick="showTab('conditions')">Conditions</button>
             <button class="tab" onclick="showTab('weather')">Weather</button>
@@ -176,7 +170,6 @@
             <button class="tab" onclick="showTab('access')">Access</button>
             <button class="tab" onclick="showTab('log')">My Log</button>
         </div>
-
         <div id="tab-conditions">
             <div class="section">
                 <h2>🌊 RIVER CONDITIONS</h2>
@@ -196,7 +189,6 @@
                 <div class="stat"><span class="stat-label">Best Window</span><span id="detail-window">-</span></div>
             </div>
         </div>
-
         <div id="tab-weather" style="display:none">
             <div class="section">
                 <h2>☁️ LOCAL WEATHER</h2>
@@ -204,7 +196,6 @@
                 <div class="stat" style="margin-top:10px;"><span class="stat-label">Note</span><span id="detail-weather-note">-</span></div>
             </div>
         </div>
-
         <div id="tab-hatches" style="display:none">
             <div class="section">
                 <h2>🐛 ACTIVE HATCHES</h2>
@@ -215,7 +206,6 @@
                 <div id="detail-flies"></div>
             </div>
         </div>
-
         <div id="tab-access" style="display:none">
             <div class="section">
                 <h2>🅿️ ACCESS & REGULATIONS</h2>
@@ -230,7 +220,6 @@
                 </div>
             </div>
         </div>
-
         <div id="tab-log" style="display:none">
             <div class="section">
                 <h2>📓 MY FISHING LOG</h2>
@@ -279,7 +268,6 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap'
             }).addTo(mapInstance)
-
             reportData.rivers.forEach((r, i) => {
                 const color = r.color === 'green' ? '#4caf50' : r.color === 'yellow' ? '#ffc107' : '#f44336'
                 const icon = L.divIcon({
@@ -287,10 +275,8 @@
                     html: `<div style="background:${color}; color:#000; font-weight:bold; padding:4px 8px; border-radius:12px; font-size:11px; white-space:nowrap; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4)">${r.name.split(' ')[0]} ${r.score}/10</div>`,
                     iconAnchor: [30, 10]
                 })
-                L.marker([r.lat, r.lon], {icon}).addTo(mapInstance)
-                    .on('click', () => showDetail(i))
+                L.marker([r.lat, r.lon], {icon}).addTo(mapInstance).on('click', () => showDetail(i))
             })
-
             mapInstance.on('click', function(e) {
                 exploreSpot(e.latlng.lat, e.latlng.lng)
             })
@@ -299,19 +285,16 @@
         async function exploreSpot(lat, lng) {
             if (currentMarker) mapInstance.removeLayer(currentMarker)
             currentMarker = L.marker([lat, lng]).addTo(mapInstance)
-
             const card = document.getElementById('spot-card')
             card.classList.add('show')
             document.getElementById('spot-title').textContent = '📍 Fetching conditions...'
             document.getElementById('spot-content').innerHTML = '<p style="color:#888; font-size:13px;">Loading live weather...</p>'
-
             let nearest = reportData.rivers[0]
             let minDist = 999
             reportData.rivers.forEach(r => {
                 const dist = Math.sqrt(Math.pow(r.lat - lat, 2) + Math.pow(r.lon - lng, 2))
                 if (dist < minDist) { minDist = dist; nearest = r }
             })
-
             try {
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,windspeed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=1`
                 const res = await fetch(url)
@@ -323,7 +306,6 @@
                 const low = data.daily.temperature_2m_min[0]
                 const distMiles = Math.round(minDist * 69)
                 const fishingNote = precip > 0.1 ? 'Rain may trigger BWO hatch' : wind > 20 ? 'High wind — fish deep' : 'Good conditions — try surface flies'
-
                 document.getElementById('spot-title').textContent = `📍 Spot (${lat.toFixed(3)}, ${lng.toFixed(3)})`
                 document.getElementById('spot-content').innerHTML = `
                     <div class="stat"><span class="stat-label">Current Temp</span><span>${temp}°F</span></div>
@@ -356,7 +338,7 @@ BEST FISHING WINDOW: ${reportData.best_window}
 ACTIVE HATCHES: ${(reportData.hatches || []).join(', ')}
 RECOMMENDED FLIES: ${(reportData.flies || []).join(', ')}
 
-You are friendly, knowledgeable about fly fishing in Utah, and give specific actionable advice. Keep responses concise and practical. Use the live data above to give specific recommendations. If asked about a river, reference its actual current score and conditions.`
+You are friendly, knowledgeable about fly fishing in Utah, and give specific actionable advice. Keep responses concise and practical. Use the live data above to give specific recommendations.`
         }
 
         async function sendMessage() {
@@ -364,27 +346,20 @@ You are friendly, knowledgeable about fly fishing in Utah, and give specific act
             const message = input.value.trim()
             if (!message) return
             input.value = ''
-
             addMessage(message, 'user')
             chatHistory.push({ role: 'user', content: message })
-
             const loadingId = addMessage('Thinking...', 'loading')
-
             try {
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
-                        max_tokens: 1000,
                         system: buildSystemPrompt(),
                         messages: chatHistory
                     })
                 })
-
                 const data = await response.json()
                 const reply = data.content[0].text
-
                 removeMessage(loadingId)
                 addMessage(reply, 'assistant')
                 chatHistory.push({ role: 'assistant', content: reply })
@@ -461,11 +436,8 @@ You are friendly, knowledgeable about fly fishing in Utah, and give specific act
                     <span>${w.rain}</span>
                 </div>
             `).join('')
-            document.getElementById('detail-hatches').innerHTML = (reportData.hatches || []).map(h =>
-                `<div class="hatch-item">🐛 ${h}</div>`).join('')
-            document.getElementById('detail-flies').innerHTML = (reportData.flies || []).map(f =>
-                `<div class="fly">${f}</div>`).join('')
-
+            document.getElementById('detail-hatches').innerHTML = (reportData.hatches || []).map(h => `<div class="hatch-item">🐛 ${h}</div>`).join('')
+            document.getElementById('detail-flies').innerHTML = (reportData.flies || []).map(f => `<div class="fly">${f}</div>`).join('')
             if (flowChartInstance) flowChartInstance.destroy()
             const ctx = document.getElementById('flowChart').getContext('2d')
             const history = r.flow_history || []
