@@ -48,9 +48,13 @@
         .log-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .log-form input, .log-form select { background: #0f2040; border: 1px solid #2a3754; color: #fff; padding: 10px; border-radius: 8px; font-size: 14px; }
         .log-form button { background: #4fc3f7; color: #000; border: none; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
+        .photo-label { background: #0f2040; border: 1px solid #2a3754; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; color: #4fc3f7; font-size: 14px; display: block; }
+        .photo-label:hover { background: #1a3a5c; }
+        .remove-photo-btn { background: #f44336; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; margin-top: 5px; cursor: pointer; font-size: 12px; width: 100%; }
         .log-entry { padding: 8px 0; border-bottom: 1px solid #2a3754; font-size: 13px; }
         .log-entry:last-child { border-bottom: none; }
         .log-date { color: #888; font-size: 12px; }
+        .log-entry img { width: 100%; border-radius: 8px; margin-top: 6px; }
         .tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
         .tab { background: #0f2040; border: none; color: #888; padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; }
         .tab.active { background: #4fc3f7; color: #000; font-weight: bold; }
@@ -87,51 +91,29 @@
     </style>
 </head>
 <body>
-
     <div class="list-view" id="list-view">
-        <div class="header">
-            <h1>🎣 Utah Fishing Report</h1>
-            <p id="report-time">Loading...</p>
-        </div>
-
+        <div class="header"><h1>🎣 Utah Fishing Report</h1><p id="report-time">Loading...</p></div>
         <div class="notification-banner" id="notification-banner"></div>
         <div class="best" id="best-river">Loading...</div>
-
         <div class="view-tabs">
             <button class="view-tab active" onclick="switchView('list')">📋 Rivers</button>
             <button class="view-tab" onclick="switchView('map')">🗺️ Explore</button>
             <button class="view-tab" onclick="switchView('week')">📅 Best Day</button>
             <button class="view-tab" onclick="switchView('ai')">🤖 Ask AI</button>
         </div>
-
         <div id="list-content">
             <div id="rivers"></div>
-            <div class="section">
-                <h2>🐛 HATCHING THIS WEEK</h2>
-                <div id="hatches"></div>
-            </div>
-            <div class="section">
-                <h2>🪰 FLIES TO USE</h2>
-                <div id="flies"></div>
-            </div>
+            <div class="section"><h2>🐛 HATCHING THIS WEEK</h2><div id="hatches"></div></div>
+            <div class="section"><h2>🪰 FLIES TO USE</h2><div id="flies"></div></div>
         </div>
-
         <div id="map-content" style="display:none">
             <div id="map"></div>
             <p class="map-hint">👆 Tap anywhere on the map to get live fishing conditions</p>
-            <div class="spot-card" id="spot-card">
-                <h3 id="spot-title">Loading spot...</h3>
-                <div id="spot-content"></div>
-            </div>
+            <div class="spot-card" id="spot-card"><h3 id="spot-title">Loading spot...</h3><div id="spot-content"></div></div>
         </div>
-
         <div id="week-content" style="display:none">
-            <div class="best-day-box">
-                <h3>🏆 BEST DAY TO FISH THIS WEEK</h3>
-                <div id="week-forecast"></div>
-            </div>
+            <div class="best-day-box"><h3>🏆 BEST DAY TO FISH THIS WEEK</h3><div id="week-forecast"></div></div>
         </div>
-
         <div id="ai-content" style="display:none">
             <div class="chat-suggestions">
                 <div class="chat-suggestion" onclick="askSuggestion(this)">Should I fish this weekend?</div>
@@ -151,10 +133,8 @@
                 </div>
             </div>
         </div>
-
         <div class="footer">Tap a river for details • Updated daily at 7:00 AM</div>
     </div>
-
     <div class="detail-view" id="detail-view">
         <button class="back-btn" onclick="showList()">← Back</button>
         <div class="detail-header">
@@ -178,10 +158,7 @@
                 <div class="stat"><span class="stat-label">Conditions</span><span id="detail-condition">-</span></div>
                 <div class="stat"><span class="stat-label">Water Temp</span><span id="detail-temp">-</span></div>
             </div>
-            <div class="section">
-                <h2>📈 7-DAY FLOW HISTORY</h2>
-                <canvas id="flowChart"></canvas>
-            </div>
+            <div class="section"><h2>📈 7-DAY FLOW HISTORY</h2><canvas id="flowChart"></canvas></div>
             <div class="section">
                 <h2>⏰ TIMING</h2>
                 <div class="stat"><span class="stat-label">Sunrise</span><span id="detail-sunrise">-</span></div>
@@ -197,27 +174,15 @@
             </div>
         </div>
         <div id="tab-hatches" style="display:none">
-            <div class="section">
-                <h2>🐛 ACTIVE HATCHES</h2>
-                <div id="detail-hatches"></div>
-            </div>
-            <div class="section">
-                <h2>🪰 RECOMMENDED FLIES</h2>
-                <div id="detail-flies"></div>
-            </div>
+            <div class="section"><h2>🐛 ACTIVE HATCHES</h2><div id="detail-hatches"></div></div>
+            <div class="section"><h2>🪰 RECOMMENDED FLIES</h2><div id="detail-flies"></div></div>
         </div>
         <div id="tab-access" style="display:none">
             <div class="section">
                 <h2>🅿️ ACCESS & REGULATIONS</h2>
                 <div class="stat"><span class="stat-label">Drive from Provo</span><span id="detail-drive-time">-</span></div>
-                <div style="margin-top:10px;">
-                    <div class="stat-label" style="margin-bottom:8px;">Access Info</div>
-                    <div class="access-box" id="detail-access">-</div>
-                </div>
-                <div style="margin-top:15px;">
-                    <div class="stat-label" style="margin-bottom:8px;">Regulations</div>
-                    <div class="access-box" id="detail-regulations">-</div>
-                </div>
+                <div style="margin-top:10px;"><div class="stat-label" style="margin-bottom:8px;">Access Info</div><div class="access-box" id="detail-access">-</div></div>
+                <div style="margin-top:15px;"><div class="stat-label" style="margin-bottom:8px;">Regulations</div><div class="access-box" id="detail-regulations">-</div></div>
             </div>
         </div>
         <div id="tab-log" style="display:none">
@@ -235,301 +200,40 @@
                         <option>Poor</option>
                     </select>
                     <input type="text" id="log-notes" placeholder="Notes (optional)">
+                    <label class="photo-label">
+                        📷 Add Photo
+                        <input type="file" id="log-photo" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+                    </label>
+                    <div id="photo-preview" style="display:none">
+                        <img id="photo-img" style="width:100%; border-radius:8px; margin-top:5px;">
+                        <button class="remove-photo-btn" onclick="clearPhoto()">Remove Photo</button>
+                    </div>
                     <button onclick="saveLog()">Save Entry</button>
                 </div>
             </div>
-            <div class="section">
-                <h2>📅 PAST TRIPS</h2>
-                <div id="log-entries">No entries yet</div>
-            </div>
+            <div class="section"><h2>📅 PAST TRIPS</h2><div id="log-entries">No entries yet</div></div>
         </div>
     </div>
-
     <script>
-        let reportData = null
-        let currentRiver = null
-        let flowChartInstance = null
-        let mapInstance = null
-        let currentMarker = null
-        let chatHistory = []
-
-        function switchView(view) {
-            ['list', 'map', 'week', 'ai'].forEach(v => {
-                document.getElementById(v + '-content').style.display = v === view ? 'block' : 'none'
-            })
-            document.querySelectorAll('.view-tab').forEach((btn, i) => {
-                btn.classList.toggle('active', ['list', 'map', 'week', 'ai'][i] === view)
-            })
-            if (view === 'map' && reportData && !mapInstance) initMap()
-        }
-
-        function initMap() {
-            mapInstance = L.map('map').setView([40.5, -111.5], 7)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(mapInstance)
-            reportData.rivers.forEach((r, i) => {
-                const color = r.color === 'green' ? '#4caf50' : r.color === 'yellow' ? '#ffc107' : '#f44336'
-                const icon = L.divIcon({
-                    className: '',
-                    html: `<div style="background:${color}; color:#000; font-weight:bold; padding:4px 8px; border-radius:12px; font-size:11px; white-space:nowrap; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.4)">${r.name.split(' ')[0]} ${r.score}/10</div>`,
-                    iconAnchor: [30, 10]
-                })
-                L.marker([r.lat, r.lon], {icon}).addTo(mapInstance).on('click', () => showDetail(i))
-            })
-            mapInstance.on('click', function(e) {
-                exploreSpot(e.latlng.lat, e.latlng.lng)
-            })
-        }
-
-        async function exploreSpot(lat, lng) {
-            if (currentMarker) mapInstance.removeLayer(currentMarker)
-            currentMarker = L.marker([lat, lng]).addTo(mapInstance)
-            const card = document.getElementById('spot-card')
-            card.classList.add('show')
-            document.getElementById('spot-title').textContent = '📍 Fetching conditions...'
-            document.getElementById('spot-content').innerHTML = '<p style="color:#888; font-size:13px;">Loading live weather...</p>'
-            let nearest = reportData.rivers[0]
-            let minDist = 999
-            reportData.rivers.forEach(r => {
-                const dist = Math.sqrt(Math.pow(r.lat - lat, 2) + Math.pow(r.lon - lng, 2))
-                if (dist < minDist) { minDist = dist; nearest = r }
-            })
-            try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,windspeed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=1`
-                const res = await fetch(url)
-                const data = await res.json()
-                const temp = data.current.temperature_2m
-                const wind = data.current.windspeed_10m
-                const precip = data.current.precipitation
-                const high = data.daily.temperature_2m_max[0]
-                const low = data.daily.temperature_2m_min[0]
-                const distMiles = Math.round(minDist * 69)
-                const fishingNote = precip > 0.1 ? 'Rain may trigger BWO hatch' : wind > 20 ? 'High wind — fish deep' : 'Good conditions — try surface flies'
-                document.getElementById('spot-title').textContent = `📍 Spot (${lat.toFixed(3)}, ${lng.toFixed(3)})`
-                document.getElementById('spot-content').innerHTML = `
-                    <div class="stat"><span class="stat-label">Current Temp</span><span>${temp}°F</span></div>
-                    <div class="stat"><span class="stat-label">Wind</span><span>${wind} mph</span></div>
-                    <div class="stat"><span class="stat-label">High / Low</span><span>${high}°F / ${low}°F</span></div>
-                    <div class="stat"><span class="stat-label">Nearest River</span><span>${nearest.name} (${distMiles} mi)</span></div>
-                    <div class="stat"><span class="stat-label">River Score</span><span style="color:${nearest.color === 'green' ? '#4caf50' : nearest.color === 'yellow' ? '#ffc107' : '#f44336'}">${nearest.score}/10</span></div>
-                    <div class="stat"><span class="stat-label">River Flow</span><span>${nearest.flow ? nearest.flow + ' CFS' : 'No data'}</span></div>
-                    <div style="background:#0f2040; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; color:#4fc3f7">${fishingNote}</div>
-                    <button onclick="showDetail(${reportData.rivers.indexOf(nearest)})" style="width:100%; margin-top:10px; background:#1a3a5c; border:none; color:#4fc3f7; padding:10px; border-radius:8px; cursor:pointer; font-size:13px;">View ${nearest.name} full report →</button>
-                `
-            } catch(e) {
-                document.getElementById('spot-content').innerHTML = '<p style="color:#f44336">Could not load weather for this spot</p>'
-            }
-        }
-
-        function buildSystemPrompt() {
-            if (!reportData) return "You are a helpful Utah fishing assistant."
-            const rivers = reportData.rivers.map(r =>
-                `${r.name}: ${r.score}/10 (${r.verdict}), Flow: ${r.flow ? r.flow + ' CFS' : 'No data'}, Trend: ${r.trend}, Conditions: ${r.condition}, Drive from Provo: ${r.drive_from_provo}`
-            ).join('\n')
-            return `You are an expert Utah fly fishing assistant. You have today's live river data:
-
-CURRENT RIVER CONDITIONS (${reportData.report_time}):
-${rivers}
-
-BEST RIVER TODAY: ${reportData.best_river}
-SEASON: ${reportData.season}
-BEST FISHING WINDOW: ${reportData.best_window}
-ACTIVE HATCHES: ${(reportData.hatches || []).join(', ')}
-RECOMMENDED FLIES: ${(reportData.flies || []).join(', ')}
-
-You are friendly, knowledgeable about fly fishing in Utah, and give specific actionable advice. Keep responses concise and practical. Use the live data above to give specific recommendations.`
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('chat-input')
-            const message = input.value.trim()
-            if (!message) return
-            input.value = ''
-            addMessage(message, 'user')
-            chatHistory.push({ role: 'user', content: message })
-            const loadingId = addMessage('Thinking...', 'loading')
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system: buildSystemPrompt(),
-                        messages: chatHistory
-                    })
-                })
-                const data = await response.json()
-                const reply = data.content[0].text
-                removeMessage(loadingId)
-                addMessage(reply, 'assistant')
-                chatHistory.push({ role: 'assistant', content: reply })
-            } catch(e) {
-                removeMessage(loadingId)
-                addMessage('Sorry, I had trouble connecting. Try again!', 'assistant')
-            }
-        }
-
-        function askSuggestion(el) {
-            document.getElementById('chat-input').value = el.textContent
-            sendMessage()
-        }
-
-        function addMessage(text, type) {
-            const container = document.getElementById('chat-messages')
-            const id = 'msg-' + Date.now()
-            const div = document.createElement('div')
-            div.className = 'chat-message ' + type
-            div.id = id
-            div.textContent = text
-            container.appendChild(div)
-            container.scrollTop = container.scrollHeight
-            return id
-        }
-
-        function removeMessage(id) {
-            const el = document.getElementById(id)
-            if (el) el.remove()
-        }
-
-        function showList() {
-            document.getElementById('list-view').classList.remove('hidden')
-            document.getElementById('detail-view').classList.remove('active')
-        }
-
-        function showTab(tab) {
-            const tabs = ['conditions', 'weather', 'hatches', 'access', 'log']
-            tabs.forEach(t => {
-                document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none'
-            })
-            document.querySelectorAll('.tab').forEach((btn, i) => {
-                btn.classList.toggle('active', tabs[i] === tab)
-            })
-            if (tab === 'log') loadLog()
-        }
-
-        function showDetail(index) {
-            const r = reportData.rivers[index]
-            currentRiver = r.name
-            document.getElementById('list-view').classList.add('hidden')
-            document.getElementById('detail-view').classList.add('active')
-            document.getElementById('detail-name').textContent = r.name
-            document.getElementById('detail-score').textContent = r.score + '/10'
-            document.getElementById('detail-score').className = 'big-score ' + r.color
-            document.getElementById('detail-verdict').textContent = r.verdict
-            document.getElementById('detail-drive').textContent = r.drive_from_provo ? '🚗 ' + r.drive_from_provo + ' from Provo' : ''
-            document.getElementById('detail-flow').textContent = r.flow ? r.flow + ' CFS' : 'No data'
-            document.getElementById('detail-trend').textContent = r.trend_emoji || r.trend
-            document.getElementById('detail-condition').textContent = r.condition
-            document.getElementById('detail-temp').textContent = r.temp
-            document.getElementById('detail-weather-note').textContent = r.weather_note || ''
-            document.getElementById('detail-sunrise').textContent = reportData.sunrise
-            document.getElementById('detail-sunset').textContent = reportData.sunset
-            document.getElementById('detail-window').textContent = reportData.best_window
-            document.getElementById('detail-access').textContent = r.access || 'No access info available'
-            document.getElementById('detail-regulations').textContent = r.regulations || 'Check Utah DWR regulations'
-            document.getElementById('detail-drive-time').textContent = r.drive_from_provo || 'N/A'
-            document.getElementById('detail-weather').innerHTML = (r.weather || []).map(w => `
-                <div class="stat">
-                    <span class="stat-label">${w.day}</span>
-                    <span>${w.high}°F / ${w.low}°F</span>
-                    <span>${w.wind} mph</span>
-                    <span>${w.rain}</span>
-                </div>
-            `).join('')
-            document.getElementById('detail-hatches').innerHTML = (reportData.hatches || []).map(h => `<div class="hatch-item">🐛 ${h}</div>`).join('')
-            document.getElementById('detail-flies').innerHTML = (reportData.flies || []).map(f => `<div class="fly">${f}</div>`).join('')
-            if (flowChartInstance) flowChartInstance.destroy()
-            const ctx = document.getElementById('flowChart').getContext('2d')
-            const history = r.flow_history || []
-            if (history.length > 0) {
-                flowChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: history.map(h => h.date.slice(5)),
-                        datasets: [{ label: 'Flow (CFS)', data: history.map(h => h.flow), borderColor: '#4fc3f7', backgroundColor: 'rgba(79,195,247,0.1)', tension: 0.3, fill: true }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#888' }, grid: { color: '#1a2744' } }, y: { ticks: { color: '#888' }, grid: { color: '#1a2744' } } } }
-                })
-            }
-            showTab('conditions')
-            loadLog()
-        }
-
-        function saveLog() {
-            const entry = {
-                date: document.getElementById('log-date').value,
-                fly: document.getElementById('log-fly').value,
-                fish: document.getElementById('log-fish').value,
-                conditions: document.getElementById('log-conditions').value,
-                notes: document.getElementById('log-notes').value,
-                river: currentRiver
-            }
-            if (!entry.date || !entry.fly) { alert('Please enter at least a date and fly.'); return; }
-            const key = 'fishing-log-' + currentRiver
-            const existing = JSON.parse(localStorage.getItem(key) || '[]')
-            existing.unshift(entry)
-            localStorage.setItem(key, JSON.stringify(existing))
-            document.getElementById('log-date').value = ''
-            document.getElementById('log-fly').value = ''
-            document.getElementById('log-fish').value = ''
-            document.getElementById('log-notes').value = ''
-            loadLog()
-        }
-
-        function loadLog() {
-            if (!currentRiver) return
-            const key = 'fishing-log-' + currentRiver
-            const entries = JSON.parse(localStorage.getItem(key) || '[]')
-            const container = document.getElementById('log-entries')
-            if (entries.length === 0) {
-                container.innerHTML = '<p style="color:#888; font-size:13px;">No entries yet for ' + currentRiver + '</p>'
-            } else {
-                container.innerHTML = entries.map(e => `
-                    <div class="log-entry">
-                        <div class="log-date">${e.date} — ${e.river}</div>
-                        <div>🪰 ${e.fly} ${e.fish ? '| 🐟 ' + e.fish : ''} ${e.conditions ? '| ' + e.conditions : ''}</div>
-                        ${e.notes ? '<div style="color:#888">' + e.notes + '</div>' : ''}
-                    </div>
-                `).join('')
-            }
-        }
-
-        function checkNotifications(rivers) {
-            const excellent = rivers.filter(r => r.score >= 9)
-            if (excellent.length > 0) {
-                const banner = document.getElementById('notification-banner')
-                banner.textContent = '🔔 Excellent conditions today: ' + excellent.map(r => r.name + ' ' + r.score + '/10').join(', ')
-                banner.classList.add('show')
-            }
-        }
-
-        function buildWeekForecast(rivers) {
-            const best = rivers[0]
-            const weather = best.weather || []
-            document.getElementById('week-forecast').innerHTML = weather.map(w => {
-                const dayScore = Math.max(1, best.score + (w.precip > 0.2 ? -1 : 0) + (w.wind > 20 ? -1 : 0))
-                const color = dayScore >= 8 ? 'green' : dayScore >= 5 ? 'yellow' : 'red'
-                return `<div class="day-row"><span>${w.day}</span><span>${w.high}°F / ${w.low}°F</span><span>${w.wind} mph</span><span class="day-score ${color}">${dayScore}/10</span></div>`
-            }).join('')
-        }
-
-        fetch('data.json')
-            .then(r => r.json())
-            .then(d => {
-                reportData = d
-                document.getElementById('report-time').textContent = d.report_time
-                document.getElementById('best-river').textContent = '👉 Best river today: ' + d.best_river
-                document.getElementById('rivers').innerHTML = d.rivers.map((r, i) => `
-                    <div class="card" onclick="showDetail(${i})">
-                        <div class="card-left"><h3>${r.name}</h3><p>${r.flow ? r.flow + ' CFS' : 'No data'} | ${r.trend} | ${r.condition}</p></div>
-                        <div class="score ${r.color}">${r.score}/10</div>
-                    </div>
-                `).join('')
-                document.getElementById('hatches').innerHTML = (d.hatches || []).map(h => `<div class="hatch-item">🐛 ${h}</div>`).join('')
-                document.getElementById('flies').innerHTML = (d.flies || []).map(f => `<div class="fly">${f}</div>`).join('')
-                checkNotifications(d.rivers)
-                buildWeekForecast(d.rivers)
-            })
+        let reportData=null,currentRiver=null,flowChartInstance=null,mapInstance=null,currentMarker=null,chatHistory=[]
+        function switchView(view){['list','map','week','ai'].forEach(v=>{document.getElementById(v+'-content').style.display=v===view?'block':'none'});document.querySelectorAll('.view-tab').forEach((btn,i)=>{btn.classList.toggle('active',['list','map','week','ai'][i]===view)});if(view==='map'&&reportData&&!mapInstance)initMap()}
+        function initMap(){mapInstance=L.map('map').setView([40.5,-111.5],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);reportData.rivers.forEach((r,i)=>{const color=r.color==='green'?'#4caf50':r.color==='yellow'?'#ffc107':'#f44336';const icon=L.divIcon({className:'',html:`<div style="background:${color};color:#000;font-weight:bold;padding:4px 8px;border-radius:12px;font-size:11px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${r.name.split(' ')[0]} ${r.score}/10</div>`,iconAnchor:[30,10]});L.marker([r.lat,r.lon],{icon}).addTo(mapInstance).on('click',()=>showDetail(i))});mapInstance.on('click',function(e){exploreSpot(e.latlng.lat,e.latlng.lng)})}
+        async function exploreSpot(lat,lng){if(currentMarker)mapInstance.removeLayer(currentMarker);currentMarker=L.marker([lat,lng]).addTo(mapInstance);const card=document.getElementById('spot-card');card.classList.add('show');document.getElementById('spot-title').textContent='📍 Fetching conditions...';document.getElementById('spot-content').innerHTML='<p style="color:#888;font-size:13px;">Loading live weather...</p>';let nearest=reportData.rivers[0],minDist=999;reportData.rivers.forEach(r=>{const dist=Math.sqrt(Math.pow(r.lat-lat,2)+Math.pow(r.lon-lng,2));if(dist<minDist){minDist=dist;nearest=r}});try{const res=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,windspeed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=1`);const data=await res.json();const distMiles=Math.round(minDist*69);const fishingNote=data.current.precipitation>0.1?'Rain may trigger BWO hatch':data.current.windspeed_10m>20?'High wind — fish deep':'Good conditions — try surface flies';document.getElementById('spot-title').textContent=`📍 Spot (${lat.toFixed(3)}, ${lng.toFixed(3)})`;document.getElementById('spot-content').innerHTML=`<div class="stat"><span class="stat-label">Current Temp</span><span>${data.current.temperature_2m}°F</span></div><div class="stat"><span class="stat-label">Wind</span><span>${data.current.windspeed_10m} mph</span></div><div class="stat"><span class="stat-label">High / Low</span><span>${data.daily.temperature_2m_max[0]}°F / ${data.daily.temperature_2m_min[0]}°F</span></div><div class="stat"><span class="stat-label">Nearest River</span><span>${nearest.name} (${distMiles} mi)</span></div><div class="stat"><span class="stat-label">River Score</span><span style="color:${nearest.color==='green'?'#4caf50':nearest.color==='yellow'?'#ffc107':'#f44336'}">${nearest.score}/10</span></div><div class="stat"><span class="stat-label">River Flow</span><span>${nearest.flow?nearest.flow+' CFS':'No data'}</span></div><div style="background:#0f2040;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#4fc3f7">${fishingNote}</div><button onclick="showDetail(${reportData.rivers.indexOf(nearest)})" style="width:100%;margin-top:10px;background:#1a3a5c;border:none;color:#4fc3f7;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;">View ${nearest.name} full report →</button>`}catch(e){document.getElementById('spot-content').innerHTML='<p style="color:#f44336">Could not load weather for this spot</p>'}}
+        function buildSystemPrompt(){if(!reportData)return"You are a helpful Utah fishing assistant.";const rivers=reportData.rivers.map(r=>`${r.name}: ${r.score}/10 (${r.verdict}), Flow: ${r.flow?r.flow+' CFS':'No data'}, Trend: ${r.trend}, Conditions: ${r.condition}, Drive from Provo: ${r.drive_from_provo}`).join('\n');return`You are an expert Utah fly fishing assistant. You have today's live river data:\n\nCURRENT RIVER CONDITIONS (${reportData.report_time}):\n${rivers}\n\nBEST RIVER TODAY: ${reportData.best_river}\nSEASON: ${reportData.season}\nBEST FISHING WINDOW: ${reportData.best_window}\nACTIVE HATCHES: ${(reportData.hatches||[]).join(', ')}\nRECOMMENDED FLIES: ${(reportData.flies||[]).join(', ')}\n\nYou are friendly, knowledgeable about fly fishing in Utah, and give specific actionable advice. Keep responses concise and practical.`}
+        async function sendMessage(){const input=document.getElementById('chat-input');const message=input.value.trim();if(!message)return;input.value='';addMessage(message,'user');chatHistory.push({role:'user',content:message});const loadingId=addMessage('Thinking...','loading');try{const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:buildSystemPrompt(),messages:chatHistory})});const data=await response.json();const reply=data.content[0].text;removeMessage(loadingId);addMessage(reply,'assistant');chatHistory.push({role:'assistant',content:reply})}catch(e){removeMessage(loadingId);addMessage('Sorry, I had trouble connecting. Try again!','assistant')}}
+        function askSuggestion(el){document.getElementById('chat-input').value=el.textContent;sendMessage()}
+        function addMessage(text,type){const container=document.getElementById('chat-messages');const id='msg-'+Date.now();const div=document.createElement('div');div.className='chat-message '+type;div.id=id;div.textContent=text;container.appendChild(div);container.scrollTop=container.scrollHeight;return id}
+        function removeMessage(id){const el=document.getElementById(id);if(el)el.remove()}
+        function showList(){document.getElementById('list-view').classList.remove('hidden');document.getElementById('detail-view').classList.remove('active')}
+        function showTab(tab){const tabs=['conditions','weather','hatches','access','log'];tabs.forEach(t=>{document.getElementById('tab-'+t).style.display=t===tab?'block':'none'});document.querySelectorAll('.tab').forEach((btn,i)=>{btn.classList.toggle('active',tabs[i]===tab)});if(tab==='log')loadLog()}
+        function showDetail(index){const r=reportData.rivers[index];currentRiver=r.name;document.getElementById('list-view').classList.add('hidden');document.getElementById('detail-view').classList.add('active');document.getElementById('detail-name').textContent=r.name;document.getElementById('detail-score').textContent=r.score+'/10';document.getElementById('detail-score').className='big-score '+r.color;document.getElementById('detail-verdict').textContent=r.verdict;document.getElementById('detail-drive').textContent=r.drive_from_provo?'🚗 '+r.drive_from_provo+' from Provo':'';document.getElementById('detail-flow').textContent=r.flow?r.flow+' CFS':'No data';document.getElementById('detail-trend').textContent=r.trend_emoji||r.trend;document.getElementById('detail-condition').textContent=r.condition;document.getElementById('detail-temp').textContent=r.temp;document.getElementById('detail-weather-note').textContent=r.weather_note||'';document.getElementById('detail-sunrise').textContent=reportData.sunrise;document.getElementById('detail-sunset').textContent=reportData.sunset;document.getElementById('detail-window').textContent=reportData.best_window;document.getElementById('detail-access').textContent=r.access||'No access info available';document.getElementById('detail-regulations').textContent=r.regulations||'Check Utah DWR regulations';document.getElementById('detail-drive-time').textContent=r.drive_from_provo||'N/A';document.getElementById('detail-weather').innerHTML=(r.weather||[]).map(w=>`<div class="stat"><span class="stat-label">${w.day}</span><span>${w.high}°F / ${w.low}°F</span><span>${w.wind} mph</span><span>${w.rain}</span></div>`).join('');document.getElementById('detail-hatches').innerHTML=(reportData.hatches||[]).map(h=>`<div class="hatch-item">🐛 ${h}</div>`).join('');document.getElementById('detail-flies').innerHTML=(reportData.flies||[]).map(f=>`<div class="fly">${f}</div>`).join('');if(flowChartInstance)flowChartInstance.destroy();const ctx=document.getElementById('flowChart').getContext('2d');const history=r.flow_history||[];if(history.length>0){flowChartInstance=new Chart(ctx,{type:'line',data:{labels:history.map(h=>h.date.slice(5)),datasets:[{label:'Flow (CFS)',data:history.map(h=>h.flow),borderColor:'#4fc3f7',backgroundColor:'rgba(79,195,247,0.1)',tension:0.3,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#888'},grid:{color:'#1a2744'}},y:{ticks:{color:'#888'},grid:{color:'#1a2744'}}}}})}showTab('conditions');loadLog()}
+        function previewPhoto(input){if(input.files&&input.files[0]){const reader=new FileReader();reader.onload=function(e){document.getElementById('photo-img').src=e.target.result;document.getElementById('photo-preview').style.display='block'};reader.readAsDataURL(input.files[0])}}
+        function clearPhoto(){document.getElementById('photo-img').src='';document.getElementById('photo-preview').style.display='none';document.getElementById('log-photo').value=''}
+        function saveLog(){const photoImg=document.getElementById('photo-img');const entry={date:document.getElementById('log-date').value,fly:document.getElementById('log-fly').value,fish:document.getElementById('log-fish').value,conditions:document.getElementById('log-conditions').value,notes:document.getElementById('log-notes').value,river:currentRiver,photo:photoImg.src&&photoImg.src!==window.location.href?photoImg.src:null};if(!entry.date||!entry.fly){alert('Please enter at least a date and fly.');return}const key='fishing-log-'+currentRiver;const existing=JSON.parse(localStorage.getItem(key)||'[]');existing.unshift(entry);localStorage.setItem(key,JSON.stringify(existing));document.getElementById('log-date').value='';document.getElementById('log-fly').value='';document.getElementById('log-fish').value='';document.getElementById('log-notes').value='';document.getElementById('log-conditions').value='';clearPhoto();loadLog()}
+        function loadLog(){if(!currentRiver)return;const key='fishing-log-'+currentRiver;const entries=JSON.parse(localStorage.getItem(key)||'[]');const container=document.getElementById('log-entries');if(entries.length===0){container.innerHTML='<p style="color:#888;font-size:13px;">No entries yet for '+currentRiver+'</p>'}else{container.innerHTML=entries.map(e=>`<div class="log-entry"><div class="log-date">${e.date} — ${e.river}</div><div>🪰 ${e.fly} ${e.fish?'| 🐟 '+e.fish:''} ${e.conditions?'| '+e.conditions:''}</div>${e.notes?'<div style="color:#888">'+e.notes+'</div>':''} ${e.photo?'<img src="'+e.photo+'">':''}</div>`).join('')}}
+        function checkNotifications(rivers){const excellent=rivers.filter(r=>r.score>=9);if(excellent.length>0){const banner=document.getElementById('notification-banner');banner.textContent='🔔 Excellent conditions today: '+excellent.map(r=>r.name+' '+r.score+'/10').join(', ');banner.classList.add('show')}}
+        function buildWeekForecast(rivers){const best=rivers[0];const weather=best.weather||[];document.getElementById('week-forecast').innerHTML=weather.map(w=>{const dayScore=Math.max(1,best.score+(w.precip>0.2?-1:0)+(w.wind>20?-1:0));const color=dayScore>=8?'green':dayScore>=5?'yellow':'red';return`<div class="day-row"><span>${w.day}</span><span>${w.high}°F / ${w.low}°F</span><span>${w.wind} mph</span><span class="day-score ${color}">${dayScore}/10</span></div>`}).join('')}
+        fetch('data.json').then(r=>r.json()).then(d=>{reportData=d;document.getElementById('report-time').textContent=d.report_time;document.getElementById('best-river').textContent='👉 Best river today: '+d.best_river;document.getElementById('rivers').innerHTML=d.rivers.map((r,i)=>`<div class="card" onclick="showDetail(${i})"><div class="card-left"><h3>${r.name}</h3><p>${r.flow?r.flow+' CFS':'No data'} | ${r.trend} | ${r.condition}</p></div><div class="score ${r.color}">${r.score}/10</div></div>`).join('');document.getElementById('hatches').innerHTML=(d.hatches||[]).map(h=>`<div class="hatch-item">🐛 ${h}</div>`).join('');document.getElementById('flies').innerHTML=(d.flies||[]).map(f=>`<div class="fly">${f}</div>`).join('');checkNotifications(d.rivers);buildWeekForecast(d.rivers)})
     </script>
 </body>
 </html>
