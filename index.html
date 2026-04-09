@@ -98,6 +98,10 @@
         .hatch-bar-wrap { flex: 1; height: 10px; background: #0a1628; border-radius: 5px; overflow: hidden; }
         .hatch-bar { height: 100%; border-radius: 5px; }
         .hatch-size { color: #888; font-size: 11px; margin-left: 8px; flex-shrink: 0; }
+        .month-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+        .month-btn { background: #0f2040; border: 1px solid #2a3754; color: #888; padding: 5px 10px; border-radius: 16px; cursor: pointer; font-size: 12px; }
+        .month-btn.active { background: #4fc3f7; color: #000; font-weight: bold; border-color: #4fc3f7; }
+        .active-hatches-box { margin-top: 12px; padding: 10px; background: #0f2040; border-radius: 8px; font-size: 13px; color: #4fc3f7; }
         .month-labels { display: flex; padding: 4px 12px 4px 172px; }
         .month-label { flex: 1; text-align: center; font-size: 9px; color: #555; }
         .current-month-marker { background: rgba(79,195,247,0.15); }
@@ -252,7 +256,7 @@
         function saveLog(){const photoImg=document.getElementById('photo-img');const entry={date:document.getElementById('log-date').value,fly:document.getElementById('log-fly').value,fish:document.getElementById('log-fish').value,conditions:document.getElementById('log-conditions').value,notes:document.getElementById('log-notes').value,river:currentRiver,photo:photoImg.src&&photoImg.src!==window.location.href?photoImg.src:null};if(!entry.date||!entry.fly){alert('Please enter at least a date and fly.');return}const key='fishing-log-'+currentRiver;const existing=JSON.parse(localStorage.getItem(key)||'[]');existing.unshift(entry);localStorage.setItem(key,JSON.stringify(existing));document.getElementById('log-date').value='';document.getElementById('log-fly').value='';document.getElementById('log-fish').value='';document.getElementById('log-notes').value='';document.getElementById('log-conditions').value='';clearPhoto();loadLog()}
         function loadLog(){if(!currentRiver)return;const key='fishing-log-'+currentRiver;const entries=JSON.parse(localStorage.getItem(key)||'[]');const container=document.getElementById('log-entries');if(entries.length===0){container.innerHTML='<p style="color:#888;font-size:13px;">No entries yet for '+currentRiver+'</p>'}else{container.innerHTML=entries.map(e=>`<div class="log-entry"><div class="log-date">${e.date} — ${e.river}</div><div>🪰 ${e.fly} ${e.fish?'| 🐟 '+e.fish:''} ${e.conditions?'| '+e.conditions:''}</div>${e.notes?'<div style="color:#888">'+e.notes+'</div>':''} ${e.photo?'<img src="'+e.photo+'">':''}</div>`).join('')}}
         function checkNotifications(rivers){const excellent=rivers.filter(r=>r.score>=9);if(excellent.length>0){const banner=document.getElementById('notification-banner');banner.textContent='🔔 Excellent conditions today: '+excellent.map(r=>r.name+' '+r.score+'/10').join(', ');banner.classList.add('show')}}
-        function buildHatchCalendar(){
+        function buildHatchCalendar(selectedMonth){
             const hatches = [
                 {name:"Midges",sizes:"#22-26",months:[1,2,3,4,5,6,7,8,9,10,11,12],color:"#90caf9"},
                 {name:"Little Winter Stonefly",sizes:"#16-18",months:[1,2,3,4],color:"#b0bec5"},
@@ -269,11 +273,20 @@
             ]
             const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
             const currentMonth = new Date().getMonth() + 1
+            const activeMonth = selectedMonth || currentMonth
             const container = document.getElementById("hatch-calendar")
 
-            let html = '<div class="month-labels">'
+            let html = '<div class="month-btns">'
             monthNames.forEach((m,i) => {
-                html += `<div class="month-label" style="${i+1===currentMonth?'color:#4fc3f7;font-weight:bold':''}">${m}</div>`
+                const isActive = i+1 === activeMonth
+                const isCurrent = i+1 === currentMonth
+                html += `<button class="month-btn${isActive?' active':''}" onclick="buildHatchCalendar(${i+1})">${m}${isCurrent&&!isActive?' •':''}</button>`
+            })
+            html += '</div>'
+
+            html += '<div class="month-labels">'
+            monthNames.forEach((m,i) => {
+                html += `<div class="month-label" style="${i+1===activeMonth?'color:#4fc3f7;font-weight:bold':''}">${m}</div>`
             })
             html += '</div>'
 
@@ -282,20 +295,19 @@
                 const lastMonth = Math.max(...hatch.months)
                 const leftPct = ((firstMonth - 1) / 12) * 100
                 const widthPct = ((lastMonth - firstMonth + 1) / 12) * 100
-                const isActive = hatch.months.includes(currentMonth)
-                html += `<div class="hatch-row${isActive?' current-month-marker':''}" style="opacity:${isActive?1:0.5}">
+                const isActive = hatch.months.includes(activeMonth)
+                html += `<div class="hatch-row${isActive?' current-month-marker':''}" style="opacity:${isActive?1:0.4}">
                     <div class="hatch-name">${isActive?'🐛 ':''}<span style="color:${isActive?'#fff':'#888'}">${hatch.name}</span></div>
                     <div class="hatch-bar-wrap">
-                        <div class="hatch-bar" style="margin-left:${leftPct}%;width:${widthPct}%;background:${hatch.color}${isActive?'':';opacity:0.4'}"></div>
+                        <div class="hatch-bar" style="margin-left:${leftPct}%;width:${widthPct}%;background:${hatch.color}${isActive?'':';opacity:0.3'}"></div>
                     </div>
                     <div class="hatch-size">${hatch.sizes}</div>
                 </div>`
             })
 
-            const currentHatches = hatches.filter(h => h.months.includes(currentMonth))
-            html += `<div style="margin-top:12px;padding:10px;background:#0f2040;border-radius:8px;font-size:13px;color:#4fc3f7">
-                🎣 <strong>${monthNames[currentMonth-1]} — Active now:</strong> ${currentHatches.map(h=>h.name+' '+h.sizes).join(', ')}
-            </div>`
+            const activeHatches = hatches.filter(h => h.months.includes(activeMonth))
+            const label = activeMonth === currentMonth ? 'Active now' : 'Active in '+monthNames[activeMonth-1]
+            html += `<div class="active-hatches-box">🎣 <strong>${monthNames[activeMonth-1]} — ${label}:</strong> ${activeHatches.map(h=>h.name+' '+h.sizes).join(', ')}</div>`
 
             container.innerHTML = html
         }
