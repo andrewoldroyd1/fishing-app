@@ -88,6 +88,17 @@
         .chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .chat-suggestion { background: #1a2744; border: 1px solid #2a3754; color: #4fc3f7; padding: 6px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; }
         .chat-suggestion:hover { background: #243560; }
+        .lake-card { background: #1a2744; border-radius: 12px; padding: 15px; margin: 10px 0; cursor: pointer; transition: background 0.2s; }
+        .lake-card:hover { background: #243560; }
+        .lake-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .lake-name { font-size: 16px; font-weight: bold; }
+        .lake-species { font-size: 12px; color: #4fc3f7; margin-top: 3px; }
+        .lake-stats { display: flex; gap: 12px; font-size: 12px; color: #888; margin-top: 8px; }
+        .lake-stat { display: flex; flex-direction: column; align-items: center; background: #0f2040; padding: 6px 10px; border-radius: 8px; }
+        .lake-stat-val { color: #fff; font-size: 14px; font-weight: bold; margin-top: 2px; }
+        .lake-technique { background: #0f2040; border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 12px; color: #ccc; }
+        .lake-detail { display: none; background: #1a2744; border-radius: 12px; padding: 20px; margin: 10px 0; }
+        .lake-detail.show { display: block; }
         .hatch-month { margin-bottom: 8px; }
         .hatch-month-header { background: #0f2040; padding: 8px 12px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: bold; color: #4fc3f7; display: flex; justify-content: space-between; }
         .hatch-month-header.current-month { background: #1a3a5c; border-left: 3px solid #4fc3f7; }
@@ -114,6 +125,7 @@
         <div class="best" id="best-river">Loading...</div>
         <div class="view-tabs">
             <button class="view-tab active" onclick="switchView('list')">📋 Rivers</button>
+            <button class="view-tab" onclick="switchView('lakes')">🏔️ Lakes</button>
             <button class="view-tab" onclick="switchView('map')">🗺️ Explore</button>
             <button class="view-tab" onclick="switchView('week')">📅 Best Day</button>
             <button class="view-tab" onclick="switchView('ai')">🤖 Ask AI</button>
@@ -123,6 +135,9 @@
             <div id="rivers"></div>
             <div class="section"><h2>🐛 HATCHING THIS WEEK</h2><div id="hatches"></div></div>
             <div class="section"><h2>🪰 FLIES TO USE</h2><div id="flies"></div></div>
+        </div>
+        <div id="lakes-content" style="display:none">
+            <div id="lakes-list"></div>
         </div>
         <div id="map-content" style="display:none">
             <div id="map"></div>
@@ -240,7 +255,7 @@
     </div>
     <script>
         let reportData=null,currentRiver=null,flowChartInstance=null,mapInstance=null,currentMarker=null,chatHistory=[]
-        function switchView(view){['list','map','week','ai','hatch'].forEach(v=>{document.getElementById(v+'-content').style.display=v===view?'block':'none'});document.querySelectorAll('.view-tab').forEach((btn,i)=>{btn.classList.toggle('active',['list','map','week','ai','hatch'][i]===view)});if(view==='map'&&reportData&&!mapInstance)initMap();if(view==='hatch')buildHatchCalendar()}
+        function switchView(view){['list','lakes','map','week','ai','hatch'].forEach(v=>{document.getElementById(v+'-content').style.display=v===view?'block':'none'});document.querySelectorAll('.view-tab').forEach((btn,i)=>{btn.classList.toggle('active',['list','lakes','map','week','ai','hatch'][i]===view)});if(view==='map'&&reportData&&!mapInstance)initMap();if(view==='hatch')buildHatchCalendar();if(view==='lakes')loadLakes()}
         function initMap(){mapInstance=L.map('map').setView([40.5,-111.5],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);reportData.rivers.forEach((r,i)=>{const color=r.color==='green'?'#4caf50':r.color==='yellow'?'#ffc107':'#f44336';const icon=L.divIcon({className:'',html:`<div style="background:${color};color:#000;font-weight:bold;padding:4px 8px;border-radius:12px;font-size:11px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${r.name.split(' ')[0]} ${r.score}/10</div>`,iconAnchor:[30,10]});L.marker([r.lat,r.lon],{icon}).addTo(mapInstance).on('click',()=>showDetail(i))});mapInstance.on('click',function(e){exploreSpot(e.latlng.lat,e.latlng.lng)})}
         async function exploreSpot(lat,lng){if(currentMarker)mapInstance.removeLayer(currentMarker);currentMarker=L.marker([lat,lng]).addTo(mapInstance);const card=document.getElementById('spot-card');card.classList.add('show');document.getElementById('spot-title').textContent='📍 Fetching conditions...';document.getElementById('spot-content').innerHTML='<p style="color:#888;font-size:13px;">Loading live weather...</p>';let nearest=reportData.rivers[0],minDist=999;reportData.rivers.forEach(r=>{const dist=Math.sqrt(Math.pow(r.lat-lat,2)+Math.pow(r.lon-lng,2));if(dist<minDist){minDist=dist;nearest=r}});try{const res=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,windspeed_10m,precipitation&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America/Denver&forecast_days=1`);const data=await res.json();const distMiles=Math.round(minDist*69);const fishingNote=data.current.precipitation>0.1?'Rain may trigger BWO hatch':data.current.windspeed_10m>20?'High wind — fish deep':'Good conditions — try surface flies';document.getElementById('spot-title').textContent=`📍 Spot (${lat.toFixed(3)}, ${lng.toFixed(3)})`;document.getElementById('spot-content').innerHTML=`<div class="stat"><span class="stat-label">Current Temp</span><span>${data.current.temperature_2m}°F</span></div><div class="stat"><span class="stat-label">Wind</span><span>${data.current.windspeed_10m} mph</span></div><div class="stat"><span class="stat-label">High / Low</span><span>${data.daily.temperature_2m_max[0]}°F / ${data.daily.temperature_2m_min[0]}°F</span></div><div class="stat"><span class="stat-label">Nearest River</span><span>${nearest.name} (${distMiles} mi)</span></div><div class="stat"><span class="stat-label">River Score</span><span style="color:${nearest.color==='green'?'#4caf50':nearest.color==='yellow'?'#ffc107':'#f44336'}">${nearest.score}/10</span></div><div class="stat"><span class="stat-label">River Flow</span><span>${nearest.flow?nearest.flow+' CFS':'No data'}</span></div><div style="background:#0f2040;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;color:#4fc3f7">${fishingNote}</div><button onclick="showDetail(${reportData.rivers.indexOf(nearest)})" style="width:100%;margin-top:10px;background:#1a3a5c;border:none;color:#4fc3f7;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;">View ${nearest.name} full report →</button>`}catch(e){document.getElementById('spot-content').innerHTML='<p style="color:#f44336">Could not load weather for this spot</p>'}}
         function buildSystemPrompt(){if(!reportData)return"You are a helpful Utah fishing assistant.";const rivers=reportData.rivers.map(r=>`${r.name}: ${r.score}/10 (${r.verdict}), Flow: ${r.flow?r.flow+' CFS':'No data'}, Trend: ${r.trend}, Conditions: ${r.condition}, Drive from Provo: ${r.drive_from_provo}`).join('\n');return`You are an expert Utah fly fishing assistant. You have today's live river data:\n\nCURRENT RIVER CONDITIONS (${reportData.report_time}):\n${rivers}\n\nBEST RIVER TODAY: ${reportData.best_river}\nSEASON: ${reportData.season}\nBEST FISHING WINDOW: ${reportData.best_window}\nACTIVE HATCHES: ${(reportData.hatches||[]).join(', ')}\nRECOMMENDED FLIES: ${(reportData.flies||[]).join(', ')}\n\nYou are friendly, knowledgeable about fly fishing in Utah, and give specific actionable advice. Keep responses concise and practical.`}
@@ -311,6 +326,75 @@
 
             container.innerHTML = html
         }
+        const lakesData = [
+            { name: "Strawberry Reservoir", lat: 40.18, lon: -111.16, drive: "1 hr 15 min", species: ["Rainbow Trout","Cutthroat Trout","Kokanee Salmon"], access: "Multiple boat ramps. Main marina at Strawberry Bay. Shore fishing along dam face.", regulations: "Trout limit 4, min 15in. Artificial lures only in some areas. Check current DWR regs.", technique: "Trolling Rapalas and spoons for kokanee. Fly fishing with nymphs near inlet streams. Ice fishing excellent in winter.", acres: 17000, depth: "85 ft max" },
+            { name: "Flaming Gorge", lat: 40.91, lon: -109.42, drive: "2 hr 45 min", species: ["Lake Trout","Rainbow Trout","Kokanee Salmon","Smallmouth Bass"], access: "Boat ramps at Sheep Creek, Lucerne Valley, Cedar Springs. Red Canyon Lodge nearby.", regulations: "Lake trout slot limit 26-34in must be released. Check current regs.", technique: "Deep trolling for lake trout 60-120ft. Jigging tube baits for smallmouth near rocky points.", acres: 42000, depth: "436 ft max" },
+            { name: "Jordanelle Reservoir", lat: 40.60, lon: -111.42, drive: "45 min", species: ["Rainbow Trout","Largemouth Bass","Perch"], access: "Rock Cliff and Hailstone marinas. Shore access along east side. Dog-friendly.", regulations: "Trout limit 4. Check current Utah DWR regulations.", technique: "Shore fishing with PowerBait near inlet. Trolling spoons for trout. Bass fishing near rocky structure.", acres: 3300, depth: "285 ft max" },
+            { name: "Fish Lake", lat: 38.57, lon: -111.72, drive: "2 hr 30 min", species: ["Mackinaw (Lake Trout)","Rainbow Trout","Splake"], access: "Fish Lake Lodge area. Forest Service campgrounds with easy lake access.", regulations: "Check current Utah DWR regulations. Mackinaw limit 2.", technique: "Deep jigging for mackinaw in summer. Trolling at 20-40ft for rainbows. Fly fishing near shore in fall.", acres: 2500, depth: "120 ft max" },
+            { name: "Pineview Reservoir", lat: 41.27, lon: -111.84, drive: "1 hr", species: ["Largemouth Bass","Smallmouth Bass","Walleye","Black Crappie"], access: "Anderson Cove, Middle Inlet, Pineview boat ramps. Good shore access.", regulations: "Check current Utah DWR regulations.", technique: "Bass fishing with topwater lures at dawn. Walleye trolling at dusk along deeper channels. Crappie jigging near structure.", acres: 2900, depth: "90 ft max" },
+            { name: "Utah Lake", lat: 40.18, lon: -111.80, drive: "20 min", species: ["Walleye","White Bass","Channel Catfish","Carp"], access: "Multiple access points. Utah Lake State Park boat ramp. Lincoln Beach area.", regulations: "Check current Utah DWR regulations. Carp no limit.", technique: "Walleye jigging near Provo River inlet. White bass schooling near surface in summer. Catfish on the bottom with cut bait.", acres: 96000, depth: "14 ft max" },
+        ]
+
+        async function loadLakes() {
+            const container = document.getElementById("lakes-list")
+            container.innerHTML = "<p style='color:#888;text-align:center;padding:20px'>Loading lake conditions...</p>"
+            const month = new Date().getMonth() + 1
+            const season = [3,4,5].includes(month)?"Spring":[6,7,8].includes(month)?"Summer":[9,10,11].includes(month)?"Fall":"Winter"
+            const results = []
+            for (const lake of lakesData) {
+                try {
+                    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lake.lat}&longitude=${lake.lon}&current=temperature_2m,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/Denver&forecast_days=1`)
+                    const data = await res.json()
+                    const airTemp = data.current.temperature_2m
+                    const wind = data.current.windspeed_10m
+                    const precip = data.daily.precipitation_sum[0]
+                    const waterTemp = Math.round(airTemp - 8 + (month >= 6 && month <= 9 ? 10 : 0))
+                    let score = 5
+                    if (waterTemp >= 55 && waterTemp <= 72) score += 3
+                    else if (waterTemp >= 45 && waterTemp < 55) score += 1
+                    else if (waterTemp > 80) score -= 2
+                    if (wind < 10) score += 1
+                    else if (wind > 20) score -= 2
+                    if (precip > 0.2) score -= 1
+                    score = Math.min(Math.max(score, 1), 10)
+                    results.push({...lake, airTemp, wind, precip, waterTemp, score, color: score>=8?"green":score>=5?"yellow":"red"})
+                } catch(e) {
+                    results.push({...lake, airTemp:"N/A", wind:"N/A", waterTemp:"N/A", score:5, color:"yellow"})
+                }
+            }
+            results.sort((a,b) => b.score - a.score)
+            container.innerHTML = results.map((lake,i) => `
+                <div class="lake-card" onclick="toggleLake(${i})">
+                    <div class="lake-header">
+                        <div>
+                            <div class="lake-name">${lake.name}</div>
+                            <div class="lake-species">🐟 ${lake.species.join(" · ")}</div>
+                        </div>
+                        <div class="score ${lake.color}">${lake.score}/10</div>
+                    </div>
+                    <div class="lake-stats">
+                        <div class="lake-stat">Air Temp<span class="lake-stat-val">${lake.airTemp}°F</span></div>
+                        <div class="lake-stat">~Water Temp<span class="lake-stat-val">${lake.waterTemp}°F</span></div>
+                        <div class="lake-stat">Wind<span class="lake-stat-val">${lake.wind} mph</span></div>
+                        <div class="lake-stat">Drive<span class="lake-stat-val">${lake.drive}</span></div>
+                    </div>
+                    <div class="lake-technique">🎣 ${season} tip: ${lake.technique.split(".")[0]}</div>
+                    <div class="lake-detail" id="lake-detail-${i}">
+                        <div class="stat"><span class="stat-label">Size</span><span>${lake.acres.toLocaleString()} acres</span></div>
+                        <div class="stat"><span class="stat-label">Max Depth</span><span>${lake.depth}</span></div>
+                        <div class="stat"><span class="stat-label">Drive from Provo</span><span>${lake.drive}</span></div>
+                        <div style="margin-top:10px"><div class="stat-label" style="margin-bottom:6px">All Techniques</div><div class="access-box">${lake.technique}</div></div>
+                        <div style="margin-top:10px"><div class="stat-label" style="margin-bottom:6px">Access</div><div class="access-box">${lake.access}</div></div>
+                        <div style="margin-top:10px"><div class="stat-label" style="margin-bottom:6px">Regulations</div><div class="access-box">${lake.regulations}</div></div>
+                    </div>
+                </div>`).join("")
+        }
+
+        function toggleLake(i) {
+            const detail = document.getElementById("lake-detail-"+i)
+            detail.classList.toggle("show")
+        }
+
         function buildWeekForecast(rivers){const best=rivers[0];const weather=best.weather||[];document.getElementById('week-forecast').innerHTML=weather.map(w=>{const dayScore=Math.max(1,best.score+(w.precip>0.2?-1:0)+(w.wind>20?-1:0));const color=dayScore>=8?'green':dayScore>=5?'yellow':'red';return`<div class="day-row"><span>${w.day}</span><span>${w.high}°F / ${w.low}°F</span><span>${w.wind} mph</span><span class="day-score ${color}">${dayScore}/10</span></div>`}).join('')}
         fetch('data.json').then(r=>r.json()).then(d=>{reportData=d;document.getElementById('report-time').textContent=d.report_time;document.getElementById('best-river').textContent='👉 Best river today: '+d.best_river;document.getElementById('rivers').innerHTML=d.rivers.map((r,i)=>`<div class="card" onclick="showDetail(${i})"><div class="card-left"><h3>${r.name}</h3><p>${r.flow?r.flow+' CFS':'No data'} | ${r.trend} | ${r.condition}</p></div><div class="score ${r.color}">${r.score}/10</div></div>`).join('');document.getElementById('hatches').innerHTML=(d.hatches||[]).map(h=>`<div class="hatch-item">🐛 ${h}</div>`).join('');document.getElementById('flies').innerHTML=(d.flies||[]).map(f=>`<div class="fly">${f}</div>`).join('');checkNotifications(d.rivers);buildWeekForecast(d.rivers)})
     </script>
